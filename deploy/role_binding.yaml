@@ -1,0 +1,11 @@
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: heimdall
+subjects:
+- kind: ServiceAccount
+  name: heimdall
+roleRef:
+  kind: Role
+  name: heimdall
+  apiGroup: rbac.authorization.k8s.io
