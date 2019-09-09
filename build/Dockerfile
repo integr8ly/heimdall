@@ -1,7 +1,8 @@
-FROM alpine:3.8
+FROM centos:7
 
-RUN apk upgrade --update --no-cache
 
-USER nobody
+RUN yum update -h && yum update -y && yum install atomic -y
 
-ADD build/_output/bin/heimdall /usr/local/bin/heimdall
+#USER nobody
+
+#ADD build/_output/bin/heimdall /usr/local/bin/heimdall

@@ -1,0 +1,7 @@
+apiVersion: imagemonitor.integreatly.org/v1alpha1
+kind: ImageMonitor
+metadata:
+  name: example-imagemonitor
+spec:
+  # Add fields here
+  size: 3
