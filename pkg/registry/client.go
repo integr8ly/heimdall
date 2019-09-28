@@ -1,6 +1,5 @@
 package registry
 
-//https://rhcc-api.redhat.com/rest/v1/repository/registry.access.redhat.com/amq7%252Famq-online-1-auth-plugin/images
 
 import (
 	"fmt"
@@ -36,4 +35,8 @@ func GetImage(r string) (v1.Image, name.Reference, error) {
 	}
 	//fmt.Printf("img %v  ref %v", img.Digest(),ref)
 	return img, ref, nil
+}
+
+type Image struct {
+
 }

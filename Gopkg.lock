@@ -224,7 +224,12 @@
 
 [[projects]]
   name = "github.com/openshift/api"
-  packages = ["apps/v1"]
+  packages = [
+    "apps/v1",
+    "image/docker10",
+    "image/dockerpre012",
+    "image/v1"
+  ]
   revision = "0d921e363e951d89f583292c60d013c318df64dc"
   version = "v3.9.0"
 
@@ -232,7 +237,9 @@
   name = "github.com/openshift/client-go"
   packages = [
     "apps/clientset/versioned/scheme",
-    "apps/clientset/versioned/typed/apps/v1"
+    "apps/clientset/versioned/typed/apps/v1",
+    "image/clientset/versioned/scheme",
+    "image/clientset/versioned/typed/image/v1"
   ]
   revision = "1fa528d3be060e4c7178eb69e76d37cf7e699e3c"
   version = "v3.9.0"
@@ -718,6 +725,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "74c2bff1bac3a43e0e8af70f31727a040fa725d7edfc9af4c258bddbba850ba5"
+  inputs-digest = "f23df5bd59eefa31a5bed5666d6dfc428c90ea8c2d41e0a2af3aa01490c34baf"
   solver-name = "gps-cdcl"
   solver-version = 1

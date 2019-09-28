@@ -55,6 +55,7 @@ func (is *ImageService) findImagesInDeployment(ns string, regex *regexp.Regexp) 
 		for k, v := range d.Spec.Template.Labels {
 			selectors = append(selectors, fmt.Sprintf("%s=%s", k, v))
 		}
+		// so this could be multiple pods if the deployment has been scaled.
 		pl, err := is.k8sclient.CoreV1().Pods(ns).List(v1.ListOptions{LabelSelector: strings.Join(selectors, ",")})
 		if err != nil {
 			return images, err
@@ -151,9 +152,9 @@ func (is *ImageService) findRegistryImageAndSHAFromImageStreamTag(ns, name strin
 	if err != nil {
 		return "", "", err
 	}
-
+	// keep iterating up the imagestream tags until we hit the one that is from the imagestream
 	if isTag.Tag != nil && isTag.Tag.From.Kind == "ImageStreamTag" {
-
+		// is the image stream in a different ns than the imagestream tag
 		if isTag.Tag.From.Namespace != "" {
 			ns = isTag.Tag.From.Namespace
 		}

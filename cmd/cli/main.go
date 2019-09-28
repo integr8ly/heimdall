@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/integr8ly/heimdall/pkg/cluster"
 	"github.com/integr8ly/heimdall/pkg/registry"
+	"github.com/integr8ly/heimdall/pkg/rhcc"
 	"github.com/openshift/client-go/apps/clientset/versioned/typed/apps/v1"
 	imagesv1 "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
 	"github.com/pkg/errors"
@@ -12,7 +13,10 @@ import (
 	"os"
 	"regexp"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	"strings"
 )
+
+//curl 'https://rhcc-api.redhat.com/rest/v1/repository/registry.access.redhat.com/amq7%252Famq-online-1-api-server/images' -H 'accept: application/json' -H 'Origin: https://access.redhat.com' -H 'Sec-Fetch-Mode: cors' --compressed
 
 func main() {
 	conf := config.GetConfigOrDie()
@@ -60,12 +64,17 @@ func check(ds *cluster.ImageService, args []string) error {
 	}
 
 	ns := args[0]
+	fmt.Println("regex" , args[1])
 	pattern := regexp.MustCompile(args[1])
 	images, err := ds.FindImages(ns, pattern)
 	if err != nil {
 		return err
 	}
 	for _, i := range images {
+		if strings.Contains(i.RegistryPath, "quay"){
+			fmt.Println("ignoring quay registry")
+			continue
+		}
 		fmt.Println("" +
 			"---- CHECK RESULT ---- " +
 			"")
@@ -103,6 +112,8 @@ func check(ds *cluster.ImageService, args []string) error {
 		if err != nil {
 			return err
 		}
+		fmt.Println("registry ", i.Registry, "org ", i.OrgPath, " image ", i.ImageName)
+		// TODO can we go through each image in the registry to find which one this hash does match
 		fmt.Println("Running hash: ", runningImgHash)
 		fmt.Println("Latest Registry  hash: ", latestHash, "err", err)
 		if latestHash == runningImgHash {
@@ -114,6 +125,28 @@ func check(ds *cluster.ImageService, args []string) error {
 		fmt.Println("-- END RESULT ---" +
 			"")
 
+		tags , err := rhcc.AvailableTags(i.OrgPath)
+		if err != nil{
+			return errors.Wrap(err, "failed to get tags")
+		}
+		fmt.Println("found tags in registry ", tags)
+		for _, t := range tags{
+			it, _, err := registry.GetImage(i.RegistryPath + ":" + t)
+			if err != nil {
+				return errors.Wrap(err, "failed to get image from registry "+i.RegistryPath+":"+i.Tag)
+			}
+			hash, err := it.Digest()
+			if hash == runningImgHash{
+				fmt.Println("actual image tag running in cluster is ", t)
+				fmt.Println("checking CVEs")
+				cves, err := rhcc.CVES(i.OrgPath, t)
+				if err != nil{
+					return errors.Wrap(err, "failed to get cves")
+				}
+				fmt.Println("found cves ", cves, len(cves))
+				break
+			}
+		}
 	}
 
 	return nil
