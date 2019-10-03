@@ -3,10 +3,10 @@
 
 ## What it does
 
-It will figure out the images in use for a particular namespaces or an individual deployment/deploymentconfig, it takes
-into acccount image streams and image stream tags. Once it has figured out the image and tag, it will then check the registry
-the image came from and get the digest for that tag and check it against the digest for the image running in the cluster.
-This tells you if the image running the cluster is up to date with the image at the same tag in the registry.
+- Figure out the images in use for a particular namespaces or an individual deployment/deploymentconfig whether those images are part of image streams, image stream tags or direct image references. 
+- It will then check the redhat registry for that image and get the image digest from the registry and check it against the digest for the image running in the cluster.
+- If it is out of date, it will figure out which none floating tag is being used in the cluster and use the registry API to figure out which CVEs are fixed by the newer image
+- It will soon then label pods or containers with this information so alerting can happen based on these labels
 
 
 ## Try it
