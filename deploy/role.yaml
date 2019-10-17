@@ -6,14 +6,10 @@ metadata:
 rules:
 - apiGroups:
   - ""
+  - apps.openshift.io
   resources:
   - pods
-  - services
-  - endpoints
-  - persistentvolumeclaims
-  - events
-  - configmaps
-  - secrets
+  - deploymentconfigs
   verbs:
   - '*'
 - apiGroups:
@@ -26,9 +22,6 @@ rules:
   - apps
   resources:
   - deployments
-  - daemonsets
-  - replicasets
-  - statefulsets
   verbs:
   - '*'
 - apiGroups:

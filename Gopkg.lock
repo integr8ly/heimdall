@@ -20,6 +20,12 @@
   revision = "de5bf2ad457846296e2031421a34e2568e304e35"
 
 [[projects]]
+  name = "github.com/asaskevich/govalidator"
+  packages = ["."]
+  revision = "ccb8e960c48f04d6935e72476ae4a51028f9e22f"
+  version = "v9"
+
+[[projects]]
   branch = "master"
   name = "github.com/beorn7/perks"
   packages = ["quantile"]
@@ -59,6 +65,12 @@
   version = "v0.1.1"
 
 [[projects]]
+  name = "github.com/go-openapi/errors"
+  packages = ["."]
+  revision = "0b2a0a1f89aa2eec2d13e03cd80ab0fdaf01f8ce"
+  version = "v0.19.2"
+
+[[projects]]
   name = "github.com/go-openapi/jsonpointer"
   packages = ["."]
   revision = "ef5f0afec364d3b9396b7b77b43dbe26bf1f8004"
@@ -77,10 +89,22 @@
   version = "v0.19.0"
 
 [[projects]]
+  name = "github.com/go-openapi/strfmt"
+  packages = ["."]
+  revision = "6faa644e1cdafc07f7b38eb06c1af5f92128f289"
+  version = "v0.19.3"
+
+[[projects]]
   name = "github.com/go-openapi/swag"
   packages = ["."]
   revision = "b3e2804c8535ee0d1b89320afd98474d5b8e9e3b"
   version = "v0.19.0"
+
+[[projects]]
+  name = "github.com/go-stack/stack"
+  packages = ["."]
+  revision = "2fee6af1a9795aafbe0253a0cfbdf668e1fb8a9a"
+  version = "v1.8.0"
 
 [[projects]]
   name = "github.com/gogo/protobuf"
@@ -183,6 +207,15 @@
   version = "v0.3.7"
 
 [[projects]]
+  name = "github.com/jedib0t/go-pretty"
+  packages = [
+    "table",
+    "text"
+  ]
+  revision = "1ec860a8cda361fb569dcefd79f058d17845f21b"
+  version = "v4.3.0"
+
+[[projects]]
   name = "github.com/json-iterator/go"
   packages = ["."]
   revision = "0ff49de124c6f76f8494e194af75bde0f1a49a29"
@@ -200,15 +233,36 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/matryer/moq"
+  packages = [
+    ".",
+    "pkg/moq"
+  ]
+  revision = "6cfb0558e1bd81d19c9909483c39e199634fed29"
+
+[[projects]]
+  branch = "master"
   name = "github.com/mattbaird/jsonpatch"
   packages = ["."]
   revision = "81af80346b1a01caae0cbc27fd3c1ba5b11e189f"
+
+[[projects]]
+  name = "github.com/mattn/go-runewidth"
+  packages = ["."]
+  revision = "3ee7d812e62a0804a7d0a324e0249ca2db3476d3"
+  version = "v0.0.4"
 
 [[projects]]
   name = "github.com/matttproud/golang_protobuf_extensions"
   packages = ["pbutil"]
   revision = "c12348ce28de40eed0136aa2b644d0ee0650e56c"
   version = "v1.0.1"
+
+[[projects]]
+  name = "github.com/mitchellh/mapstructure"
+  packages = ["."]
+  revision = "3536a929edddb9a5b34bd6861dc4a9647cb459fe"
+  version = "v1.1.2"
 
 [[projects]]
   name = "github.com/modern-go/concurrent"
@@ -316,6 +370,19 @@
   packages = ["."]
   revision = "298182f68c66c05229eb03ac171abe6e309ee79a"
   version = "v1.0.3"
+
+[[projects]]
+  name = "go.mongodb.org/mongo-driver"
+  packages = [
+    "bson",
+    "bson/bsoncodec",
+    "bson/bsonrw",
+    "bson/bsontype",
+    "bson/primitive",
+    "x/bsonx/bsoncore"
+  ]
+  revision = "1261197350f3ad46a907489aee7ecc49b39efb82"
+  version = "v1.1.2"
 
 [[projects]]
   name = "go.uber.org/atomic"
@@ -696,7 +763,6 @@
     "pkg/client/apiutil",
     "pkg/client/config",
     "pkg/controller",
-    "pkg/controller/controllerutil",
     "pkg/event",
     "pkg/handler",
     "pkg/internal/controller",
@@ -725,6 +791,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "f23df5bd59eefa31a5bed5666d6dfc428c90ea8c2d41e0a2af3aa01490c34baf"
+  inputs-digest = "ae8379fde338d2693aa2b6f100cfeaaa32fdab8a0f6d106163da0dbfd9211551"
   solver-name = "gps-cdcl"
   solver-version = 1

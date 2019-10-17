@@ -4,4 +4,4 @@ metadata:
   name: example-imagemonitor
 spec:
   # Add fields here
-  size: 3
+  namespaces: 3
