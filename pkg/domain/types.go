@@ -1,6 +1,7 @@
 package domain
 
 import (
+	v1 "github.com/openshift/api/image/v1"
 	"regexp"
 	"strings"
 )
@@ -15,11 +16,13 @@ type ClusterImage struct {
 	ImageName    string
 	RegistryPath string
 	Org string
-	//registry.redhat.io/3scale-amp26/system@sha256:650d2e3ce0e304d2035f1425556a69d617841a85ed077e674b7631d1424f7dec
 	SHA256Path string
 	Pods []PodAndContainerRef
 	FromImageStream bool
+	ImageStreamTag *v1.ImageStreamTag
+
 }
+
 
 func (ci *ClusterImage)GetSHAFromPath()string  {
 	if ci.SHA256Path == ""{

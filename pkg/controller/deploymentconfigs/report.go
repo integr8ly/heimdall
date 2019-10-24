@@ -58,6 +58,7 @@ func (r *Reports)Generate(ns, deploymentConfig string)([]domain.ReportResult,  e
 	var reports []domain.ReportResult
 	var checked= map[string]domain.ReportResult{}
 	for _, dc := range dcs {
+		log.Info("checking deployment with resource version " + dc.ResourceVersion)
 		var images []*domain.ClusterImage
 		log.Info("got deployment config ", "name", dc.Name)
 		icp := getImageChangeParams(&dc)

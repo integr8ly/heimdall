@@ -66,6 +66,7 @@ func (is *ImageService) FindImagesFromImageChangeParams(defaultNS string, params
 
 		parsedImage := ParseImage(actualImage)
 		parsedImage.FromImageStream = true
+		parsedImage.ImageStreamTag =ist
 		// if this is a local ref we need to use the registry so as to avoid hitting the local registry
 		if ist.Tag != nil && ist.Tag.ReferencePolicy.Type == v13.LocalTagReferencePolicy{
 			found := replaceLocalImageRef.FindStringSubmatch(imageSHA)

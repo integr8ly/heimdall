@@ -21,8 +21,10 @@ func NewPods(c client.Client)*Pods  {
 }
 
 func (p *Pods)LabelPods(rep *domain.ReportResult)error  {
+
 	 var labelErrors = []error{}
 		for _, pd := range rep.ClusterImage.Pods{
+			log.Info("labeling pod with image info ", "pod ", pd.Name, "namespace", pd.Namespace)
 			pod := &v1.Pod{}
 			if err := p.client.Get(context.TODO(), client.ObjectKey{Name:pd.Name, Namespace:pd.Namespace}, pod); err != nil{
 				log.Error(err, "failed to get the pod " + pd.Name + " in namespace " + pd.Namespace + " will try again later")
@@ -35,8 +37,10 @@ func (p *Pods)LabelPods(rep *domain.ReportResult)error  {
 			pod.Labels[fmt.Sprintf(labelFormat,"resolvableModerateCVEs")] = fmt.Sprintf("%d",len(rep.GetResolvableModerateCVEs()))
 			pod.Labels[fmt.Sprintf(labelFormat,"updatedImageAvailable")] = fmt.Sprintf("%v",rep.UpToDateWithFloatingTag == false)
 			pod.Labels[fmt.Sprintf(labelFormat,"latestPatchImage")] = fmt.Sprintf("%v",rep.LatestAvailablePatchVersion)
-			pod.Labels[fmt.Sprintf(labelFormat,"currentGrade")] = fmt.Sprintf("%v",rep.CurrentGrade)
-			pod.Labels[fmt.Sprintf(labelFormat,"latestGrade")] = fmt.Sprintf("%v",rep.LatestGrade)
+			if rep.ClusterImage.FromImageStream {
+				pod.Annotations[fmt.Sprintf(labelFormat, "imagestreamTag")] = fmt.Sprintf("%v", rep.ClusterImage.ImageStreamTag.Name)
+				pod.Annotations[fmt.Sprintf(labelFormat, "imagestreamTagNamespace")] = fmt.Sprintf("%v", rep.ClusterImage.ImageStreamTag.Namespace)
+			}
 			if err := p.client.Update(context.TODO(), pod); err != nil{
 				log.Error(err,"failed to update pod with labels " + pod.Name + " in namespace " + pod. Namespace)
 				labelErrors = append(labelErrors,err)

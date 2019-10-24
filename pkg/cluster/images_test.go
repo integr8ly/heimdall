@@ -4,6 +4,8 @@ import (
 	"github.com/integr8ly/heimdall/pkg/cluster"
 	"github.com/integr8ly/heimdall/pkg/domain"
 	v1 "github.com/openshift/api/apps/v1"
+	v12 "github.com/openshift/client-go/image/clientset/versioned/typed/image/v1"
+	"k8s.io/client-go/kubernetes"
 	"reflect"
 	"testing"
 )
@@ -57,6 +59,11 @@ func TestImageService_FindImagesFromImageChangeParams(t *testing.T) {
 		Name string
 		Namespace string
 		ChangeParams []*v1.DeploymentTriggerImageChangeParams
+		DeploymentLabels map[string]string
+		K8sClient kubernetes.Interface
+		ImageClient v12.ImageV1Interface
+		ExpectErr bool
+		Validate func(t *testing.T, images []*domain.ClusterImage)
 	}{
 		{
 			Name:"test finding images ",
@@ -66,8 +73,17 @@ func TestImageService_FindImagesFromImageChangeParams(t *testing.T) {
 
 	for _, tc := range cases{
 		t.Run(tc.Name, func(t *testing.T) {
-			is := cluster.NewImageService()
-			is.FindImagesFromImageChangeParams(tc.Namespace,tc.ChangeParams)
+			is := cluster.NewImageService(tc.K8sClient, tc.ImageClient)
+			images, err := is.FindImagesFromImageChangeParams(tc.Namespace,tc.ChangeParams, tc.DeploymentLabels)
+			if tc.ExpectErr && err == nil{
+				t.Fatal("expected an error but got none")
+			}
+			if ! tc.ExpectErr && err != nil{
+				t.Fatal("did not expect an error but got one ", err)
+			}
+			if tc.Validate != nil{
+				tc.Validate(t, images)
+			}
 		})
 	}
 }

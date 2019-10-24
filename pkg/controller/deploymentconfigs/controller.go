@@ -94,15 +94,17 @@ type ReconcileDeploymentConfig struct {
 }
 
 
-
+// TODO need to ensure the image is running in a pod before bothering to check it
 
 func (r *ReconcileDeploymentConfig) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+	log.Info("checking deployment config images ", "namespace", request.Namespace, "name", request.Name)
 	// get the deployment config and work through the images we discover
 	report, err :=r.reportService.Generate(request.Namespace, request.Name)
 	if err != nil{
 		log.Error(err,"failed to generate a report for images in dc " + request.Name + " in namespace " + request.Namespace)
 		return reconcile.Result{RequeueAfter: requeAfterFourHours}, nil
 	}
+	log.Info("generated reports for deployment ", "reports", len(report), "namespace", request.Namespace, "name", request.Name)
 	for _,rep := range report{
 		if err := r.podService.LabelPods(&rep); err != nil{
 			log.Error(err,"failed to label pod ")

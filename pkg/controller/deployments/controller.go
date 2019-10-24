@@ -46,6 +46,7 @@ func newReconciler(mgr manager.Manager, k8sClient kubernetes.Interface,  riServi
 			clusterImageService:  clusterImageService,
 			registryImageService: riService,
 		},
+		podService:       cluster.NewPods(mgr.GetClient()),
 	}
 }
 
@@ -61,7 +62,19 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 func (r *ReconcileDeployment) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	fmt.Print("reconcile called for deployment ", request.Namespace, request.Name)
-	return reconcile.Result{}, nil
+	report, err :=r.reportService.Generate(request.Namespace, request.Name)
+	if err != nil{
+		log.Error(err,"failed to generate a report for images in dc " + request.Name + " in namespace " + request.Namespace)
+		return reconcile.Result{RequeueAfter: requeAfterFourHours}, nil
+	}
+	log.Info("generated reports for deployment ", "reports", len(report), "namespace", request.Namespace, "name", request.Name)
+	for _,rep := range report{
+		if err := r.podService.LabelPods(&rep); err != nil{
+			log.Error(err,"failed to label pod ")
+			return reconcile.Result{RequeueAfter: requeAfterFourHours}, nil
+		}
+	}
+	return reconcile.Result{RequeueAfter:requeAfterFourHours}, nil
 }
 
 var _ reconcile.Reconciler = &ReconcileDeployment{}
@@ -74,9 +87,7 @@ type ReconcileDeployment struct {
 	scheme              *runtime.Scheme
 	// turn into interfaces
 	reportService *Reports
+	podService          *cluster.Pods
 }
-
-//docker-registry.default.svc:5000/openshift/postgresql
-//registry.redhat.io/rhscl/postgresql-96-rhel7
 
 
