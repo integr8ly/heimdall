@@ -22,8 +22,10 @@ go build .
 
 Login to a target cluster to ensure your kube config is pointing to the correct cluster, the tool uses the local kube config
 
+You need to get a service account token and login with it locally. Here is one I have set up (you need to login to see it) https://access.redhat.com/terms-based-registry/#/token/-heimdall
+
 ``` 
-./cli check <namespace> 
+./cli -namespaces=fuse
 ```
 
 ### Sample Output
