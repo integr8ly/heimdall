@@ -28,14 +28,9 @@ type ContainerRepository struct {
 			Name  string `json:"name"`
 		} `json:"vendors"`
 		Products []*Product `json:"products"`
-		Images []struct {
+		Images   []struct {
 			LastUpdateDate  string `json:"lastUpdateDate"`
-			FreshnessGrades []struct {
-				EndDate      string `json:"end_date,omitempty"`
-				Grade        string `json:"grade"`
-				CreationDate string `json:"creation_date"`
-				StartDate    string `json:"start_date"`
-			} `json:"freshness_grades"`
+			FreshnessGrades []*FreshnessGrade`json:"freshness_grades"`
 			Repositories []struct {
 				ImageAdvisoryID string `json:"image_advisory_id"`
 				Repository      string `json:"repository"`
@@ -59,6 +54,13 @@ type ContainerRepository struct {
 		} `json:"images"`
 	} `json:"processed"`
 	ResultMetadata []interface{} `json:"resultMetadata"`
+}
+
+type FreshnessGrade struct {
+	EndDate      string `json:"end_date,omitempty"`
+	Grade        string `json:"grade"`
+	CreationDate string `json:"creation_date"`
+	StartDate    string `json:"start_date"`
 }
 
 type CVE struct {
@@ -94,7 +96,6 @@ type Product struct {
 	ID                      string   `json:"_id"`
 }
 
-
 type ContainerRepositoryImage struct {
 	Entity        string `json:"entity"`
 	EntityVersion string `json:"entityVersion"`
@@ -124,7 +125,7 @@ type ContainerRepositoryImage struct {
 			Name  string `json:"name"`
 		} `json:"vendors"`
 		Products []*Product `json:"products"`
-		Images []struct {
+		Images   []struct {
 			LastUpdateDate  string `json:"lastUpdateDate"`
 			FreshnessGrades []struct {
 				EndDate      string `json:"end_date,omitempty"`
