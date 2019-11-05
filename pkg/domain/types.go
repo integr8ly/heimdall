@@ -116,4 +116,10 @@ func (cr ReportResult)String() string {
 }
 
 
+const(
+	HeimdallMonitored = "heimdall.monitored"
+	HeimdallLastChecked = "heimdall.lastcheck"
+	HeimdallImagesChecked = "heimdall.imageschecked"
+)
+
 

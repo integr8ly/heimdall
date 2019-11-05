@@ -15,6 +15,7 @@ import (
 )
 
 var log = logf.Log.WithName("image_service")
+var replaceLocalImageRef = regexp.MustCompile("(^docker-.*)@")
 
 type ImageService struct {
 	client      kubernetes.Interface
@@ -31,19 +32,20 @@ func NewImageService(k8s kubernetes.Interface, ic v14.ImageV1Interface) *ImageSe
 
 
 // if a deploymentconfig has triggers that use image change params this method will use those to find the underlying docker image no need to check all containers etc in this case
-func (is *ImageService) FindImagesFromImageChangeParams(defaultNS string, params []*v12.DeploymentTriggerImageChangeParams, labels map[string]string ) ([]*domain.ClusterImage,  error) {
+func (is *ImageService) FindImagesFromImageChangeParams(defaultNS string, params []*v12.DeploymentTriggerImageChangeParams, dcLabels map[string]string ) ([]*domain.ClusterImage,  error) {
 	var images []*domain.ClusterImage
 	var selectors []string
-	for k, v := range labels {
+	// build a label selector based on the deploymentconfig labels
+	for k, v := range dcLabels {
 		selectors = append(selectors, fmt.Sprintf("%s=%s", k, v))
 	}
 	log.V(10).Info("selector ", "s ", strings.Join(selectors, ","))
+	// find all the pods that match the dc labels
 	pods, err := is.client.CoreV1().Pods(defaultNS).List(v1.ListOptions{LabelSelector: strings.Join(selectors, ",")})
 	if err != nil {
 		log.Error(err, "failed to list pods with labels "+strings.Join(selectors, ","))
 		return nil, errors.Wrap(err, "failed to list pods with labels "+strings.Join(selectors, ","))
 	}
-	replaceLocalImageRef := regexp.MustCompile("(^docker-.*)@")
 
 	for _, p := range params {
 		var ns = p.From.Namespace
@@ -67,7 +69,7 @@ func (is *ImageService) FindImagesFromImageChangeParams(defaultNS string, params
 		parsedImage := ParseImage(actualImage)
 		parsedImage.FromImageStream = true
 		parsedImage.ImageStreamTag =ist
-		// if this is a local ref we need to use the registry so as to avoid hitting the local registry
+		// if this is a local image ref we need to use the registry so as to avoid hitting the local registry
 		if ist.Tag != nil && ist.Tag.ReferencePolicy.Type == v13.LocalTagReferencePolicy{
 			found := replaceLocalImageRef.FindStringSubmatch(imageSHA)
 			// will always be the match at index 1
