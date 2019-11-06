@@ -2,6 +2,7 @@ package deploymentconfigs
 
 import (
 	"github.com/integr8ly/heimdall/pkg/cluster"
+	"github.com/integr8ly/heimdall/pkg/controller/validation"
 	"github.com/integr8ly/heimdall/pkg/domain"
 	"github.com/integr8ly/heimdall/pkg/registry"
 	"github.com/integr8ly/heimdall/pkg/rhcc"
@@ -104,15 +105,11 @@ func (r *ReconcileDeploymentConfig) Reconcile(request reconcile.Request) (reconc
 		log.Info("failed to get deployment config " + request.Namespace + "  ")
 		return reconcile.Result{}, nil
 	}
-	if _, ok := dc.Labels[domain.HeimdallMonitored]; ! ok{
-		return reconcile.Result{}, nil
-	}
-	lastChecked := dc.Annotations[domain.HeimdallLastChecked]
-	// if it is empty we will assume never checked
-	if lastChecked != ""{
-		checked, err := time.Parse(time.RFC822Z, lastChecked)
-		if err != nil{
-			log.Error(err, "failed to parse last checked time " + lastChecked + " deleting so can be updated")
+	// TODO expand should check to check the image in the dc against the ones in the labels, note we might be able to use cluster.FindImagesFromImageChangeParams and
+	// cluster.FindImagesFromLabels
+	should,err := validation.ShouldCheck(dc)
+	if err != nil{
+		if validation.IsParseErr(err){
 			delete(dc.Annotations, domain.HeimdallLastChecked)
 			if _, err := r.dcClient.DeploymentConfigs(request.Namespace).Update(dc); err != nil{
 				// in this case we will requeue log the error and requeue to ensure we dont keep retrying the checks
@@ -121,14 +118,12 @@ func (r *ReconcileDeploymentConfig) Reconcile(request reconcile.Request) (reconc
 			}
 			return reconcile.Result{}, nil
 		}
-		// TODO make time configurable via env prob should be set to reque time (4hrs)
-		if checked.Add(time.Minute * 15).After(time.Now()){
-			//TODO need to check if the images match our last checked images and if not check anyway
-			// otherwise not enough time has passed return
-			log.Info("not enough time has passed since the last check")
-			return reconcile.Result{}, nil
-		}
 	}
+	if ! should{
+		log.Info("critera for re checking " +dc.Name+ " not met")
+		return reconcile.Result{}, nil
+	}
+
 	log.Info("deployment config " +dc.Name+" in namespace "+dc.Namespace+" is being monitored by heimdall")
 	// get the deployment config and work through the images we discover
 	report, err :=r.reportService.Generate(request.Namespace, request.Name)
@@ -147,7 +142,7 @@ func (r *ReconcileDeploymentConfig) Reconcile(request reconcile.Request) (reconc
 	if dc.Annotations == nil{
 		dc.Annotations = map[string]string{}
 	}
-	dc.Annotations[domain.HeimdallLastChecked] = time.Now().Format(time.RFC822Z)
+	dc.Annotations[domain.HeimdallLastChecked] = time.Now().Format(domain.TimeFormat)
 	log.Info("generated reports for deployment ", "reports", len(report), "namespace", request.Namespace, "name", request.Name)
 	checked := []string{}
 	for _,rep := range report{

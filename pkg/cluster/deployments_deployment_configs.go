@@ -3,6 +3,7 @@ package cluster
 import (
 	"context"
 	"fmt"
+	"github.com/integr8ly/heimdall/pkg/domain"
 	v1 "github.com/openshift/api/apps/v1"
 	"github.com/pkg/errors"
 	v12 "k8s.io/api/apps/v1"
@@ -73,7 +74,7 @@ func (ol *ObjectsLabeler)LabelAllDeploymentsAndDeploymentConfigs(ctx context.Con
 	return nil
 }
 
-func (ol *ObjectsLabeler)RemoveLabelsAllDeploymentsAndDeploymentConfigs(ctx context.Context,labels map[string]string , excludePattern string, ns string) error {
+func (ol *ObjectsLabeler)RemoveLabelsAnnotations(ctx context.Context,labels map[string]string , excludePattern string, ns string) error {
 	dcList := &v1.DeploymentConfigList{}
 	depList := &v12.DeploymentList{}
 	var listOpts = &client.ListOptions{Namespace:ns}
@@ -100,26 +101,35 @@ func (ol *ObjectsLabeler)RemoveLabelsAllDeploymentsAndDeploymentConfigs(ctx cont
 			fmt.Println("skipping ", dc.Name, " as matched by excludePattern")
 			continue
 		}
-		if dc.Labels == nil{
-			dc.Labels = map[string]string{}
+
+		if dc.Labels != nil {
+			for k, _ := range labels {
+				delete(dc.Labels, k)
+			}
 		}
-		for k, _ :=  range labels{
-			delete(dc.Labels,k)
+		if dc.Annotations != nil{
+			delete(dc.Annotations, domain.HeimdallLastChecked)
+			delete(dc.Annotations, domain.HeimdallImagesChecked)
 		}
+
 		if err := ol.client.Update(context.TODO(), &dc); err != nil{
 			return err
 		}
 	}
 	for _, dep := range depList.Items{
-		if dep.Labels == nil{
-			dep.Labels = map[string]string{}
-		}
+
 		if matchRegex.MatchString(dep.Name){
 			fmt.Println("skipping ", dep.Name, " as matched by excludePattern")
 			continue
 		}
-		for k, _ :=  range labels{
-			delete(dep.Labels,k)
+		if dep.Labels != nil {
+			for k, _ := range labels {
+				delete(dep.Labels, k)
+			}
+		}
+		if dep.Annotations != nil{
+			delete(dep.Annotations, domain.HeimdallLastChecked)
+			delete(dep.Annotations, domain.HeimdallImagesChecked)
 		}
 		if err := ol.client.Update(context.TODO(), &dep); err != nil{
 			return err

@@ -4,6 +4,7 @@ import (
 	v1 "github.com/openshift/api/image/v1"
 	"regexp"
 	"strings"
+	"time"
 )
 
 type ClusterImage struct {
@@ -120,6 +121,7 @@ const(
 	HeimdallMonitored = "heimdall.monitored"
 	HeimdallLastChecked = "heimdall.lastcheck"
 	HeimdallImagesChecked = "heimdall.imageschecked"
+	TimeFormat = time.RFC822Z
 )
 
 

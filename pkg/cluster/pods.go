@@ -23,6 +23,7 @@ func NewPods(c client.Client)*Pods  {
 func (p *Pods)LabelPods(rep *domain.ReportResult)error  {
 
 	var labelErrors = []error{}
+	fmt.Println("report pods ", rep.ClusterImage.Pods)
 	for _, pd := range rep.ClusterImage.Pods{
 		log.Info("labeling pod with image info ", "pod ", pd.Name, "namespace", pd.Namespace)
 		pod := &v1.Pod{}

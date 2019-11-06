@@ -63,12 +63,15 @@ func (r *ReconcileImageMonitor) Reconcile(request reconcile.Request) (reconcile.
 	ctx := context.TODO()
 	imageMon := &v1alpha1.ImageMonitor{}
 	err := r.client.Get(context.TODO(),client.ObjectKey{Namespace:request.Namespace, Name:request.Name}, imageMon)
-	if err != nil && ! errors2.IsNotFound(err){
+	if err != nil{
+		if errors2.IsNotFound(err){
+			return reconcile.Result{},nil
+		}
 		return reconcile.Result{}, err
 	}
 	finalizers := imageMon.GetFinalizers()
 	if imageMon.DeletionTimestamp != nil{
-		if err := r.objectLabeler.RemoveLabelsAllDeploymentsAndDeploymentConfigs(ctx, map[string]string{domain.HeimdallMonitored: "true"}, imageMon.Spec.ExcludePattern,imageMon.Namespace); err != nil{
+		if err := r.objectLabeler.RemoveLabelsAnnotations(ctx, map[string]string{domain.HeimdallMonitored: "true"}, imageMon.Spec.ExcludePattern,imageMon.Namespace); err != nil{
 			return reconcile.Result{}, err
 		}
 		for i, f := range finalizers{

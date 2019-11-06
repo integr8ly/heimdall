@@ -3,6 +3,7 @@ package deployments
 import (
 	"context"
 	"github.com/integr8ly/heimdall/pkg/cluster"
+	"github.com/integr8ly/heimdall/pkg/controller/validation"
 	"github.com/integr8ly/heimdall/pkg/domain"
 	"github.com/integr8ly/heimdall/pkg/registry"
 	"github.com/integr8ly/heimdall/pkg/rhcc"
@@ -68,10 +69,23 @@ func (r *ReconcileDeployment) Reconcile(request reconcile.Request) (reconcile.Re
 		log.Info("failed to get deployment in namespace " + request.Namespace + " with name  " + d.Name)
 		return reconcile.Result{}, nil
 	}
-	if _, ok := d.Labels[domain.HeimdallMonitored]; ! ok{
+	should, err := validation.ShouldCheck(d)
+	if err != nil{
+		if validation.IsParseErr(err){
+			delete(d.Annotations, domain.HeimdallLastChecked)
+			if err := r.client.Update(context.TODO(),d); err != nil{
+				// in this case we will requeue log the error and requeue to ensure we dont keep retrying the checks
+				log.Error(err, " failed to label deployment " + request.Namespace + " " + request.Name)
+				return reconcile.Result{RequeueAfter: requeAfterFourHours}, nil
+			}
+			return reconcile.Result{}, nil
+		}
+	}
+	if ! should{
+		log.Info("critera for re checking " +d.Name+ " not met")
 		return reconcile.Result{}, nil
 	}
-	lastChecked := d.Annotations[domain.HeimdallLastChecked]
+
 
 	log.Info("deployment " +d.Name+" in namespace "+d.Namespace+" is being monitored by heimdall")
 	report, err :=r.reportService.Generate(request.Namespace, request.Name)

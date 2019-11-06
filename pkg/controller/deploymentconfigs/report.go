@@ -63,7 +63,7 @@ func (r *Reports)Generate(ns, deploymentConfig string)([]domain.ReportResult,  e
 		log.Info("got deployment config ", "name", dc.Name)
 		icp := getImageChangeParams(&dc)
 		if len(icp) > 0 {
-			is, err := r.clusterImageService.FindImagesFromImageChangeParams(dc.Namespace, icp, dc.Labels)
+			is, err := r.clusterImageService.FindImagesFromImageChangeParams(dc.Namespace, icp, dc.Spec.Template.Labels)
 			if err != nil {
 				return reports, errors.Wrap(err, "failed find images in deploymentconfig via its image triggers ")
 			}
