@@ -8,7 +8,7 @@
 
 ## Try it
 
-- Install Go 
+- Install Go (go1.13)
 - Clone this repo
 
 ```
