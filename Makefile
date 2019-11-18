@@ -16,12 +16,8 @@ setup/moq:
 	dep ensure
 	cd vendor/github.com/matryer/moq/ && go install .
 
-.PHONY: code/compile
-code/compile:
-	@GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o=$(COMPILE_TARGET) ./cmd/manager
-
 .PHONY: image/build
-image/build: code/compile
+image/build:
 	@operator-sdk build $(REG)/$(ORG)/$(PROJECT):$(TAG)
 
 .PHONY: image/push

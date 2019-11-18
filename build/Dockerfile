@@ -1,8 +1,15 @@
-FROM centos:7
+FROM registry.access.redhat.com/ubi8/ubi:8.0
 
+ENV OPERATOR=/usr/local/bin/heimdall \
+    USER_UID=1001 \
+    USER_NAME=heimdall
 
-RUN yum update -h && yum update -y && yum install atomic -y
+# install operator binary
+COPY build/_output/bin/heimdall ${OPERATOR}
 
-#USER nobody
+COPY build/bin /usr/local/bin
+RUN  /usr/local/bin/user_setup
 
-#ADD build/_output/bin/heimdall /usr/local/bin/heimdall
+ENTRYPOINT ["/usr/local/bin/entrypoint"]
+
+USER ${USER_UID}
