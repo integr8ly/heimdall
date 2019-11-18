@@ -4,6 +4,7 @@ import (
 	v1 "github.com/openshift/api/image/v1"
 	"regexp"
 	"strings"
+	"time"
 )
 
 type ClusterImage struct {
@@ -115,5 +116,12 @@ func (cr ReportResult)String() string {
 	return "currentVersion :" + cr.CurrentVersion + " LatestAvailablePatchVersion: " + cr.LatestAvailablePatchVersion + " Floating Tag: "+cr.FloatingTag + " actual image ref " + cr.ActualImageRef
 }
 
+
+const(
+	HeimdallMonitored = "heimdall.monitored"
+	HeimdallLastChecked = "heimdall.lastcheck"
+	HeimdallImagesChecked = "heimdall.imageschecked"
+	TimeFormat = time.RFC822Z
+)
 
 

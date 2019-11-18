@@ -13,3 +13,10 @@ spec:
   version: v1alpha1
   subresources:
     status: {}
+  validation:
+    openAPIV3Schema:
+      properties:
+        excludePattern:
+          description: 'Regular expression that will decide whether to exclude certain resources from image monitoring. For example if the image is
+          built in cluster and comes from the internal registry.'
+          type: string

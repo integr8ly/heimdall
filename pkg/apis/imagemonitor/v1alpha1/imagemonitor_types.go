@@ -9,14 +9,12 @@ import (
 
 // ImageMonitorSpec defines the desired state of ImageMonitor
 type ImageMonitorSpec struct {
-	Namespace string
-	Pattern   string
+	ExcludePattern   string `json:"excludePattern"`
 }
 
 // ImageMonitorStatus defines the observed state of ImageMonitor
 type ImageMonitorStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
+	Reports map[string]map[string]string `json:"reports"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

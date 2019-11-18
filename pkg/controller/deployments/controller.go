@@ -1,8 +1,10 @@
 package deployments
 
 import (
-	"fmt"
+	"context"
 	"github.com/integr8ly/heimdall/pkg/cluster"
+	"github.com/integr8ly/heimdall/pkg/controller/validation"
+	"github.com/integr8ly/heimdall/pkg/domain"
 	"github.com/integr8ly/heimdall/pkg/registry"
 	"github.com/integr8ly/heimdall/pkg/rhcc"
 	"github.com/pkg/errors"
@@ -14,8 +16,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 	"time"
 )
 
@@ -25,8 +27,7 @@ const labelFormat = "heimdall.%s"
 
 const requeAfterFourHours = time.Hour * 4
 
-// Add creates a new ImageMonitor Controller and adds it to the Manager. The Manager will set fields on the Controller
-// and Start it when the Manager is Started.
+
 func Add(mgr manager.Manager) error {
 	client, err := kubernetes.NewForConfig(mgr.GetConfig())
 	if err != nil {
@@ -45,6 +46,7 @@ func newReconciler(mgr manager.Manager, k8sClient kubernetes.Interface,  riServi
 		reportService: &Reports{
 			clusterImageService:  clusterImageService,
 			registryImageService: riService,
+			deploymentClient: k8sClient.AppsV1(),
 		},
 		podService:       cluster.NewPods(mgr.GetClient()),
 	}
@@ -61,7 +63,31 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 }
 
 func (r *ReconcileDeployment) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	fmt.Print("reconcile called for deployment ", request.Namespace, request.Name)
+	d := &v12.Deployment{}
+	err := r.client.Get(context.TODO(), client.ObjectKey{Namespace:request.Namespace, Name:request.Name}, d)
+	if err != nil{
+		log.Info("failed to get deployment in namespace " + request.Namespace + " with name  " + d.Name)
+		return reconcile.Result{}, nil
+	}
+	should, err := validation.ShouldCheck(d)
+	if err != nil{
+		if validation.IsParseErr(err){
+			delete(d.Annotations, domain.HeimdallLastChecked)
+			if err := r.client.Update(context.TODO(),d); err != nil{
+				// in this case we will requeue log the error and requeue to ensure we dont keep retrying the checks
+				log.Error(err, " failed to label deployment " + request.Namespace + " " + request.Name)
+				return reconcile.Result{RequeueAfter: requeAfterFourHours}, nil
+			}
+			return reconcile.Result{}, nil
+		}
+	}
+	if ! should{
+		log.Info("critera for re checking " +d.Name+ " not met")
+		return reconcile.Result{}, nil
+	}
+
+
+	log.Info("deployment " +d.Name+" in namespace "+d.Namespace+" is being monitored by heimdall")
 	report, err :=r.reportService.Generate(request.Namespace, request.Name)
 	if err != nil{
 		log.Error(err,"failed to generate a report for images in dc " + request.Name + " in namespace " + request.Namespace)
