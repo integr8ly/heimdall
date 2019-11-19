@@ -3,5 +3,4 @@ kind: ImageMonitor
 metadata:
   name: example-imagemonitor
 spec:
-  # Add fields here
-  namespaces: 3
+  excludePattern: ""

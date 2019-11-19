@@ -1,0 +1,40 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: heimdall
+rules:
+- apiGroups:
+  - ""
+  - apps.openshift.io
+  resources:
+  - pods
+  - deploymentconfigs
+  - configmaps
+  - imagemonitors
+  verbs:
+  - '*'
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - '*'
+- apiGroups:
+    - imagemonitor.integreatly.org
+  resources:
+    - imagemonitors
+  verbs:
+    - '*'
+- apiGroups:
+    - image.openshift.io
+  resources:
+    - imagestreamtags
+  verbs:
+    - '*'
