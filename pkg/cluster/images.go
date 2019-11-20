@@ -41,7 +41,6 @@ func (is *ImageService) FindImagesFromImageChangeParams(defaultNS string, params
 	}
 	log.V(10).Info("selector ", "s ", strings.Join(selectors, ","))
 	// find all the pods that match the dc labels
-	fmt.Println("label selector for pods ",strings.Join(selectors, ","))
 	pods, err := is.client.CoreV1().Pods(defaultNS).List(v1.ListOptions{LabelSelector: strings.Join(selectors, ",")})
 	if err != nil {
 		log.Error(err, "failed to list pods with labels "+strings.Join(selectors, ","))
@@ -123,7 +122,6 @@ func (is *ImageService) FindImagesFromLabels(ns string, deploymentLabels map[str
 		selectors = append(selectors, fmt.Sprintf("%s=%s", k, v))
 	}
 	log.V(10).Info("selector ", "s ", strings.Join(selectors, ","))
-	fmt.Println("label selector for pods ",strings.Join(selectors, ","))
 	pods, err := is.client.CoreV1().Pods(ns).List(v1.ListOptions{LabelSelector: strings.Join(selectors, ",")})
 	if err != nil {
 		log.Error(err, "failed to list pods with labels "+strings.Join(selectors, ","))

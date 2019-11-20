@@ -27,8 +27,6 @@ func (ol *ObjectsLabeler)LabelAllDeploymentsAndDeploymentConfigs(ctx context.Con
 	var listOpts = &client.ListOptions{Namespace:ns}
 	var matchRegex *regexp.Regexp
 
-
-
 	if err := ol.client.List(ctx,listOpts,dcList); err != nil{
 		return errors.Wrap(err, "failed to list deployment configs in namespace " + ns)
 	}
@@ -42,11 +40,12 @@ func (ol *ObjectsLabeler)LabelAllDeploymentsAndDeploymentConfigs(ctx context.Con
 			return errors.Wrap(err, "failed to compile pattern to exclude " + excludePattern)
 		}
 
-
 		for _, dc := range dcList.Items{
-			if matchRegex.MatchString(dc.Name){
-				fmt.Println("skipping ", dc.Name, " as matched by excludePattern" + excludePattern)
-				continue
+			if excludePattern != "" {
+				if matchRegex.MatchString(dc.Name) {
+					fmt.Println("skipping ", dc.Name, " as matched by excludePattern"+excludePattern)
+					continue
+				}
 			}
 			// dont care about over writing as these will be our namespaced labels
 			for k, v :=  range labels{
