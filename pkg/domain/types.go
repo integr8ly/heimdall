@@ -122,6 +122,7 @@ const(
 	HeimdallLastChecked = "heimdall.lastcheck"
 	HeimdallImagesChecked = "heimdall.imageschecked"
 	TimeFormat = time.RFC822Z
+	MinRecheckIntervalMins = 30
 )
 
 

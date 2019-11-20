@@ -18,6 +18,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+	"strings"
 	"time"
 )
 
@@ -49,6 +50,7 @@ func newReconciler(mgr manager.Manager, k8sClient kubernetes.Interface,  riServi
 			deploymentClient: k8sClient.AppsV1(),
 		},
 		podService:       cluster.NewPods(mgr.GetClient()),
+		imageService:clusterImageService,
 	}
 }
 
@@ -63,22 +65,31 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 }
 
 func (r *ReconcileDeployment) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+	ctx := context.TODO()
 	d := &v12.Deployment{}
 	err := r.client.Get(context.TODO(), client.ObjectKey{Namespace:request.Namespace, Name:request.Name}, d)
 	if err != nil{
-		log.Info("failed to get deployment in namespace " + request.Namespace + " with name  " + d.Name)
+		log.Error(err,"failed to get deployment in namespace " + request.Namespace + " with name  " + d.Name)
+		return reconcile.Result{}, err
+	}
+	// ignore if not labeled
+	if _, ok := d.Labels[domain.HeimdallMonitored]; !ok {
 		return reconcile.Result{}, nil
 	}
-	should, err := validation.ShouldCheck(d)
+	images, err := r.reportService.GetImages(d)
+	if err != nil{
+		return reconcile.Result{}, err
+	}
+	should, err := validation.ShouldCheck(d, images)
 	if err != nil{
 		if validation.IsParseErr(err){
 			delete(d.Annotations, domain.HeimdallLastChecked)
 			if err := r.client.Update(context.TODO(),d); err != nil{
 				// in this case we will requeue log the error and requeue to ensure we dont keep retrying the checks
 				log.Error(err, " failed to label deployment " + request.Namespace + " " + request.Name)
-				return reconcile.Result{RequeueAfter: requeAfterFourHours}, nil
+				return reconcile.Result{}, err
 			}
-			return reconcile.Result{}, nil
+			return reconcile.Result{}, err
 		}
 	}
 	if ! should{
@@ -86,19 +97,36 @@ func (r *ReconcileDeployment) Reconcile(request reconcile.Request) (reconcile.Re
 		return reconcile.Result{}, nil
 	}
 
-
 	log.Info("deployment " +d.Name+" in namespace "+d.Namespace+" is being monitored by heimdall")
+
 	report, err :=r.reportService.Generate(request.Namespace, request.Name)
 	if err != nil{
 		log.Error(err,"failed to generate a report for images in dc " + request.Name + " in namespace " + request.Namespace)
 		return reconcile.Result{RequeueAfter: requeAfterFourHours}, nil
 	}
 	log.Info("generated reports for deployment ", "reports", len(report), "namespace", request.Namespace, "name", request.Name)
+	// make sure we are upto date
+	err = r.client.Get(context.TODO(), client.ObjectKey{Namespace:request.Namespace, Name:request.Name}, d)
+	if err != nil{
+		log.Info("failed to get deployment in namespace " + request.Namespace + " with name  " + d.Name)
+		return reconcile.Result{}, nil
+	}
+	if d.Annotations == nil{
+		d.Annotations = map[string]string{}
+	}
+	d.Annotations[domain.HeimdallLastChecked] = time.Now().Format(domain.TimeFormat)
+	checked := []string{}
 	for _,rep := range report{
+		checked = append(checked,rep.ClusterImage.SHA256Path)
 		if err := r.podService.LabelPods(&rep); err != nil{
 			log.Error(err,"failed to label pod ")
-			return reconcile.Result{RequeueAfter: requeAfterFourHours}, nil
+			return reconcile.Result{}, nil
 		}
+	}
+	d.Annotations[domain.HeimdallImagesChecked] = strings.Join(checked, ",")
+	if err := r.client.Update(ctx, d); err != nil{
+		log.Error(err,"failed to annotate deployment " + d.Namespace + " "+d.Name)
+		return reconcile.Result{}, nil
 	}
 	return reconcile.Result{RequeueAfter:requeAfterFourHours}, nil
 }
@@ -114,6 +142,7 @@ type ReconcileDeployment struct {
 	// turn into interfaces
 	reportService *Reports
 	podService          *cluster.Pods
+	imageService *cluster.ImageService
 }
 
 

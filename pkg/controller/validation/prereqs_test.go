@@ -15,20 +15,10 @@ func TestShouldCheck(t *testing.T) {
 		Object v1.Object
 		Expect bool
 		ExpectErr bool
+		Images []*domain.ClusterImage
 	}{
 		{
-			Name :"test should not check when not labeled by heimdall",
-			Object:&v12.Deployment{
-				ObjectMeta:v1.ObjectMeta{
-					Annotations: map[string]string{},
-					Labels: map[string]string{},
-				},
-			},
-			Expect: false,
-			ExpectErr: false,
-		},
-		{
-			Name :"test should not check when labeled by heimdall and not enough time has passed",
+			Name :"test should not check when not enough time has passed",
 			Object:&v12.Deployment{
 				ObjectMeta:v1.ObjectMeta{
 					Annotations: map[string]string{
@@ -43,7 +33,7 @@ func TestShouldCheck(t *testing.T) {
 			ExpectErr: false,
 		},
 		{
-			Name :"test should check when labeled by heimdall and correct time has passed",
+			Name :"test should check when correct time has passed",
 			Object:&v12.Deployment{
 				ObjectMeta:v1.ObjectMeta{
 					Annotations: map[string]string{
@@ -57,11 +47,56 @@ func TestShouldCheck(t *testing.T) {
 			Expect: true,
 			ExpectErr: false,
 		},
+		{
+			Name :"test should not check when images are the same and not enough time has passed",
+			Object:&v12.Deployment{
+				ObjectMeta:v1.ObjectMeta{
+					Annotations: map[string]string{
+						domain.HeimdallLastChecked: time.Now().Format(domain.TimeFormat),
+						domain.HeimdallImagesChecked: "somepath1,somepath2",
+					},
+					Labels: map[string]string{
+						domain.HeimdallMonitored:"true",
+					},
+				},
+			},
+			Images:[]*domain.ClusterImage{{
+				SHA256Path:"somepath1",
+			},{
+				SHA256Path:"somepath2",
+			}},
+			Expect: false,
+			ExpectErr: false,
+		},
+		{
+			Name :"test should check when images have changed and not enough time has passed",
+			Object:&v12.Deployment{
+				ObjectMeta:v1.ObjectMeta{
+					Annotations: map[string]string{
+						domain.HeimdallLastChecked: time.Now().Format(domain.TimeFormat),
+						domain.HeimdallImagesChecked: "someimage2, someimage",
+					},
+					Labels: map[string]string{
+						domain.HeimdallMonitored:"true",
+					},
+				},
+			},
+			Images:[]*domain.ClusterImage{
+				{
+					SHA256Path:"someimage",
+				},
+				{
+					SHA256Path:"someimage3",
+				},
+			},
+			Expect: true,
+			ExpectErr: false,
+		},
 	}
 
 	for _, tc := range cases{
 		t.Run(tc.Name, func(t *testing.T) {
-			should, err := validation.ShouldCheck(tc.Object)
+			should, err := validation.ShouldCheck(tc.Object, tc.Images)
 			if tc.ExpectErr && err == nil{
 				t.Fatal("expected and error but got none")
 			}

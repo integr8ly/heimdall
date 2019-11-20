@@ -69,6 +69,7 @@ clusterImageService := cluster.NewImageService(k8sClient, isClient)
 			registryImageService: riService,
 			dcClient:dcClient,
 		},
+		imageService:clusterImageService,
 	}
 }
 
@@ -93,6 +94,7 @@ type ReconcileDeploymentConfig struct {
 	dcClient            v12.AppsV1Interface
 	isClient            v13.ImageV1Interface
 	podService          *cluster.Pods
+	imageService        *cluster.ImageService
 	// turn into interfaces
 	reportService *Reports
 }
@@ -102,26 +104,33 @@ func (r *ReconcileDeploymentConfig) Reconcile(request reconcile.Request) (reconc
 	// we can label the deployment with last run time and we will see it again immediately but will then reque it based on the next check time
 	dc, err := r.dcClient.DeploymentConfigs(request.Namespace).Get(request.Name, v14.GetOptions{})
 	if err != nil{
-		log.Info("failed to get deployment config " + request.Namespace + "  ")
+		log.Error(err,"failed to get deployment config " + request.Namespace + "  " + request.Name )
+		return reconcile.Result{}, err
+	}
+	if _, ok := dc.Labels[domain.HeimdallMonitored]; !ok {
 		return reconcile.Result{}, nil
 	}
-	// TODO expand should check to check the image in the dc against the ones in the labels, note we might be able to use cluster.FindImagesFromImageChangeParams and
-	// cluster.FindImagesFromLabels
-	should,err := validation.ShouldCheck(dc)
+	images, err := r.reportService.GetImages(dc)
+	if err != nil{
+		log.Error(err, "failed to get images for deployment config when checking if should run check again")
+		return reconcile.Result{}, err
+	}
+	should,err := validation.ShouldCheck(dc, images)
 	if err != nil{
 		if validation.IsParseErr(err){
 			delete(dc.Annotations, domain.HeimdallLastChecked)
 			if _, err := r.dcClient.DeploymentConfigs(request.Namespace).Update(dc); err != nil{
 				// in this case we will requeue log the error and requeue to ensure we dont keep retrying the checks
 				log.Error(err, " failed to label deployment config " + request.Namespace + " " + request.Name)
-				return reconcile.Result{RequeueAfter: requeAfterFourHours}, nil
+				return reconcile.Result{}, nil
 			}
 			return reconcile.Result{}, nil
 		}
 	}
 	if ! should{
+		//return and we will see it again once it changes or 4 hrs passes
 		log.Info("critera for re checking " +dc.Name+ " not met")
-		return reconcile.Result{}, nil
+		return reconcile.Result{RequeueAfter: requeAfterFourHours}, nil
 	}
 
 	log.Info("deployment config " +dc.Name+" in namespace "+dc.Namespace+" is being monitored by heimdall")
@@ -131,11 +140,11 @@ func (r *ReconcileDeploymentConfig) Reconcile(request reconcile.Request) (reconc
 		log.Error(err,"failed to generate a report for images in dc " + request.Name + " in namespace " + request.Namespace)
 		return reconcile.Result{RequeueAfter: requeAfterFourHours}, nil
 	}
-
+	// after the report has been run we want to annotate our dc with information. If we fail here we may end up re running the report.
 	// reports can take some time so get a fresh dc copy
 	dc, err = r.dcClient.DeploymentConfigs(request.Namespace).Get(request.Name, v14.GetOptions{})
 	if err != nil{
-		log.Info("failed to get deployment config " + request.Namespace + "  ")
+		log.Error(err,"failed to get deployment config " + request.Namespace + "  " + request.Name )
 		return reconcile.Result{}, nil
 	}
 	// have to use annotation as labels have strict length and format
@@ -149,17 +158,15 @@ func (r *ReconcileDeploymentConfig) Reconcile(request reconcile.Request) (reconc
 		checked = append(checked,rep.ClusterImage.SHA256Path)
 		if err := r.podService.LabelPods(&rep); err != nil{
 			log.Error(err,"failed to label pod ")
-			return reconcile.Result{RequeueAfter: requeAfterFourHours}, nil
+			return reconcile.Result{}, nil
 		}
 	}
 	dc.Annotations[domain.HeimdallImagesChecked] = strings.Join(checked, ",")
 	if _, err := r.dcClient.DeploymentConfigs(request.Namespace).Update(dc); err != nil{
 		// in this case we will requeue log the error and requeue to ensure we dont keep retrying the checks
 		log.Error(err, " failed to label deployment config " + request.Namespace + " " + request.Name)
-		return reconcile.Result{RequeueAfter: requeAfterFourHours}, nil
+		return reconcile.Result{}, nil
 	}
-	// finally label the deployment with hiemdall.lastcheck time that needs to pass before we run the check again and requeue.
-	// also could label with last image seen the logic would then be has the image changed rerun else check the time.
-
+	// ensure we see this dc 4 hours from now or when it next changes
 	return reconcile.Result{RequeueAfter:requeAfterFourHours}, nil
 }
