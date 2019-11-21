@@ -5,7 +5,7 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: heimdall
-    namespace: openshift-heimdall
+    namespace: heimdall
 roleRef:
   kind: ClusterRole
   name: heimdall
