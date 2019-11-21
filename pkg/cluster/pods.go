@@ -38,6 +38,7 @@ func (p *Pods) LabelPods(rep *domain.ReportResult) error {
 		pod.Labels[fmt.Sprintf(labelFormat, "resolvableModerateCVEs")] = fmt.Sprintf("%d", len(rep.GetResolvableModerateCVEs()))
 		pod.Labels[fmt.Sprintf(labelFormat, "updatedImageAvailable")] = fmt.Sprintf("%v", rep.UpToDateWithFloatingTag == false)
 		pod.Labels[fmt.Sprintf(labelFormat, "latestPatchImage")] = fmt.Sprintf("%v", rep.LatestAvailablePatchVersion)
+		pod.Labels[fmt.Sprintf(labelFormat, "currentImage")] = fmt.Sprintf("%v", rep.CurrentVersion)
 		if rep.ClusterImage.FromImageStream {
 			pod.Annotations[fmt.Sprintf(labelFormat, "imagestreamTag")] = fmt.Sprintf("%v", rep.ClusterImage.ImageStreamTag.Name)
 			pod.Annotations[fmt.Sprintf(labelFormat, "imagestreamTagNamespace")] = fmt.Sprintf("%v", rep.ClusterImage.ImageStreamTag.Namespace)

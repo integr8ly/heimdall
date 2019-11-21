@@ -284,8 +284,7 @@
     "image/dockerpre012",
     "image/v1"
   ]
-  revision = "0d921e363e951d89f583292c60d013c318df64dc"
-  version = "v3.9.0"
+  revision = "8741ff068a473be041d7bafb4502c12e4f10aab5"
 
 [[projects]]
   name = "github.com/openshift/client-go"
@@ -296,8 +295,7 @@
     "image/clientset/versioned/typed/image/v1",
     "image/clientset/versioned/typed/image/v1/fake"
   ]
-  revision = "1fa528d3be060e4c7178eb69e76d37cf7e699e3c"
-  version = "v3.9.0"
+  revision = "431ec9a26e5021f35fa41ee9a89842db9bfdb370"
 
 [[projects]]
   name = "github.com/operator-framework/operator-sdk"
@@ -826,6 +824,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "8e37abbabf9349e6b8fde4415507665527579509b9b0758afe30673c953f6b20"
+  inputs-digest = "ba22a64ad050c57ee1f219b89cbf02bde70828c35f98188cf9606fa9dfae1d38"
   solver-name = "gps-cdcl"
   solver-version = 1

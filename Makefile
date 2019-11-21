@@ -3,6 +3,7 @@ PROJECT=heimdall-operator
 REG=quay.io
 TAG=master
 COMPILE_TARGET=./tmp/_output/bin/$(PROJECT)
+NAMESPACE=""
 
 SHELL=/bin/bash
 
@@ -23,6 +24,14 @@ code/fix:
 setup/moq:
 	dep ensure
 	cd vendor/github.com/matryer/moq/ && go install .
+
+.PHONY: code/run
+code/run:
+	@operator-sdk up local --namespace=$(NAMESPACE)
+
+.PHONY: test/unit
+test/unit:
+	@./scripts/ci/unit_test.sh
 
 .PHONY: image/build
 image/build:
