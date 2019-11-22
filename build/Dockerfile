@@ -8,7 +8,10 @@ ENV OPERATOR=/usr/local/bin/heimdall \
 COPY build/_output/bin/heimdall ${OPERATOR}
 
 COPY build/bin /usr/local/bin
-RUN  /usr/local/bin/user_setup
+
+RUN /usr/local/bin/user_setup \
+    && mkdir -p /usr/local/docker \
+    && ln -sf /tmp/docker/.dockerconfigjson /usr/local/docker/config.json
 
 ENTRYPOINT ["/usr/local/bin/entrypoint"]
 
