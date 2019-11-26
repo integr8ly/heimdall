@@ -9,7 +9,7 @@ import (
 
 // ImageMonitorSpec defines the desired state of ImageMonitor
 type ImageMonitorSpec struct {
-	ExcludePattern   string `json:"excludePattern"`
+	ExcludePattern string `json:"excludePattern"`
 }
 
 // ImageMonitorStatus defines the observed state of ImageMonitor

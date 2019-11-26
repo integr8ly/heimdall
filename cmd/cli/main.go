@@ -42,10 +42,10 @@ func main() {
 	if err != nil {
 		log.Fatal("failed to create image stream client")
 	}
-	clusterIS := cluster.NewImageService(client,isClient)
-	registryIS := registry.NewImagesService(&registry.Client{},&rhcc.Client{},&rhcc.Client{})
-	dcReport := deploymentconfigs.NewReport(clusterIS,registryIS, dcClient)
-	deploymentReport := deployments.NewReport(clusterIS,registryIS, client.AppsV1())
+	clusterIS := cluster.NewImageService(client, isClient)
+	registryIS := registry.NewImagesService(&registry.Client{}, &rhcc.Client{}, &rhcc.Client{})
+	dcReport := deploymentconfigs.NewReport(clusterIS, registryIS, dcClient)
+	deploymentReport := deployments.NewReport(clusterIS, registryIS, client.AppsV1())
 	var reports []domain.ReportResult
 	namespaces := strings.Split(*namespacePtr, ",")
 	for _, n := range namespaces {

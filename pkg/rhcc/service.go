@@ -12,7 +12,6 @@ import (
 	"time"
 )
 
-
 const host = "https://rhcc-api.redhat.com/rest/v1"
 const images = "%s/repository/%s/%s/images"
 const image = "%s/repository/%s/%s/images/%s?architecture="
@@ -21,9 +20,9 @@ type Client struct {
 }
 
 type Tag struct {
-	Name  string
-	Added string
-	TimeAdded int64
+	Name           string
+	Added          string
+	TimeAdded      int64
 	FreshnessGrade string
 	// can be floating or persistent
 	Type string
@@ -53,11 +52,11 @@ func (c *Client) AvailableTagsSortedByDate(org string) ([]Tag, error) {
 	var tags []Tag
 	var freshnessGrade *FreshnessGrade
 	for _, i := range cr.Processed[0].Images {
-		for _, fg := range i.FreshnessGrades{
+		for _, fg := range i.FreshnessGrades {
 			sd, _ := time.Parse(format, fg.StartDate)
-			if sd.Before(time.Now()){
+			if sd.Before(time.Now()) {
 				ed, _ := time.Parse(format, fg.EndDate)
-				if !ed.After(time.Now()){
+				if !ed.After(time.Now()) {
 					freshnessGrade = fg
 					break
 				}
@@ -72,15 +71,15 @@ func (c *Client) AvailableTagsSortedByDate(org string) ([]Tag, error) {
 					tagType = t.TagHistory[0].TagType
 				}
 				tag := Tag{
-					Name:           t.Name,
-					Added:          t.AddedDate,
-					Type:           tagType,
+					Name:  t.Name,
+					Added: t.AddedDate,
+					Type:  tagType,
 				}
 				addedTime, err := time.Parse(format, t.AddedDate)
-				if err != nil{
-					return  nil, errors.Wrap(err, "failed to parse time image was pushed")
+				if err != nil {
+					return nil, errors.Wrap(err, "failed to parse time image was pushed")
 				}
-				if freshnessGrade != nil{
+				if freshnessGrade != nil {
 					tag.FreshnessGrade = freshnessGrade.Grade
 				}
 				tag.TimeAdded = addedTime.Unix()
@@ -90,15 +89,14 @@ func (c *Client) AvailableTagsSortedByDate(org string) ([]Tag, error) {
 	}
 
 	sort.Slice(tags, func(i, j int) bool {
-		return  tags[i].TimeAdded > tags[j].TimeAdded
+		return tags[i].TimeAdded > tags[j].TimeAdded
 	})
 	return tags, nil
 }
 
-
 func (c *Client) CVES(org, tag string) ([]domain.CVE, error) {
-	if org == "" || tag == ""{
-		return nil, errors.New("expected and org and a tag but got org  "+ org + " tag " +tag)
+	if org == "" || tag == "" {
+		return nil, errors.New("expected and org and a tag but got org  " + org + " tag " + tag)
 	}
 	cri := &ContainerRepositoryImage{}
 	i := url.QueryEscape(url.QueryEscape(org))
