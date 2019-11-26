@@ -10,31 +10,30 @@ import (
 	"time"
 )
 
-
 func ShouldCheck(meta v1.Object, images []*domain.ClusterImage) (bool, error) {
 	minsBeforeCheckEnv := os.Getenv("HEIMDALL_RECHECK_MINS")
 	var recheckAfter time.Duration = time.Duration(domain.MinRecheckIntervalMins)
 	var parseErr error
-	if minsBeforeCheckEnv != ""{
+	if minsBeforeCheckEnv != "" {
 		v, err := strconv.ParseInt(minsBeforeCheckEnv, 10, 32)
-		if err != nil{
-			parseErr = &ParseErr{Message:fmt.Sprintf(" failed to parse env var to int HEIMDALL_RECHECK_MINS: %s  using default value %v ", err.Error(), recheckAfter)}
-		}else{
+		if err != nil {
+			parseErr = &ParseErr{Message: fmt.Sprintf(" failed to parse env var to int HEIMDALL_RECHECK_MINS: %s  using default value %v ", err.Error(), recheckAfter)}
+		} else {
 			recheckAfter = time.Duration(v)
 		}
 	}
 	annotations := meta.GetAnnotations()
 	// If the images have changed we always want to check
 	checked := strings.Split(annotations[domain.HeimdallImagesChecked], ",")
-	for _, i := range images{
+	for _, i := range images {
 		found := false
-		for _, c := range checked{
-			if strings.TrimSpace(i.SHA256Path) == strings.TrimSpace(c){
+		for _, c := range checked {
+			if strings.TrimSpace(i.SHA256Path) == strings.TrimSpace(c) {
 				found = true
 				break
 			}
 		}
-		if ! found{
+		if !found {
 			return true, nil
 		}
 	}

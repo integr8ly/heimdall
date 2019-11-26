@@ -21,9 +21,10 @@ import (
 // if no scan has been done, it will trigger a scan by updating the labels on the deployment or deploymentconfig
 // doing this will cause the deploymentconfig and deployment handlers to run the needed scans
 
-
 var log = logf.Log.WithName("controller_imagemonitor")
+
 const finalizer = "heimdall.rhmi.org"
+
 func Add(mgr manager.Manager) error {
 	client, err := kubernetes.NewForConfig(mgr.GetConfig())
 	if err != nil {
@@ -47,14 +48,14 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 func newReconciler(mgr manager.Manager, k8sClient kubernetes.Interface) reconcile.Reconciler {
 	c := mgr.GetClient()
 	r := &ReconcileImageMonitor{
-		client: c,
-		objectLabeler:cluster.NewObjectLabeler(c),
+		client:        c,
+		objectLabeler: cluster.NewObjectLabeler(c),
 	}
 	return r
 }
 
 type ReconcileImageMonitor struct {
-	client client.Client
+	client        client.Client
 	objectLabeler *cluster.ObjectsLabeler
 }
 
@@ -62,26 +63,26 @@ func (r *ReconcileImageMonitor) Reconcile(request reconcile.Request) (reconcile.
 	// TODO need to add finalizer and remove finalizer on delete
 	ctx := context.TODO()
 	imageMon := &v1alpha1.ImageMonitor{}
-	err := r.client.Get(context.TODO(),client.ObjectKey{Namespace:request.Namespace, Name:request.Name}, imageMon)
-	if err != nil{
-		if errors2.IsNotFound(err){
-			return reconcile.Result{},nil
+	err := r.client.Get(context.TODO(), client.ObjectKey{Namespace: request.Namespace, Name: request.Name}, imageMon)
+	if err != nil {
+		if errors2.IsNotFound(err) {
+			return reconcile.Result{}, nil
 		}
 		return reconcile.Result{}, err
 	}
 	finalizers := imageMon.GetFinalizers()
-	if imageMon.DeletionTimestamp != nil{
-		if err := r.objectLabeler.RemoveLabelsAnnotations(ctx, map[string]string{domain.HeimdallMonitored: "true"}, imageMon.Spec.ExcludePattern,imageMon.Namespace); err != nil{
+	if imageMon.DeletionTimestamp != nil {
+		if err := r.objectLabeler.RemoveLabelsAnnotations(ctx, map[string]string{domain.HeimdallMonitored: "true"}, imageMon.Spec.ExcludePattern, imageMon.Namespace); err != nil {
 			return reconcile.Result{}, err
 		}
-		for i, f := range finalizers{
-			if f == finalizer{
-				finalizers = append(finalizers[:i],finalizers[i+1:]...)
+		for i, f := range finalizers {
+			if f == finalizer {
+				finalizers = append(finalizers[:i], finalizers[i+1:]...)
 				imageMon.SetFinalizers(finalizers)
 				break
 			}
 		}
-		if err := r.client.Update(ctx, imageMon); err != nil{
+		if err := r.client.Update(ctx, imageMon); err != nil {
 			return reconcile.Result{}, errors.Wrap(err, "failed to remove finalizer")
 		}
 		return reconcile.Result{}, nil
@@ -89,22 +90,22 @@ func (r *ReconcileImageMonitor) Reconcile(request reconcile.Request) (reconcile.
 
 	// add our finalizer
 	foundFinalizer := false
-	for _, f := range finalizers{
-		if f == finalizer{
+	for _, f := range finalizers {
+		if f == finalizer {
 			foundFinalizer = true
 			break
 		}
 	}
-	if ! foundFinalizer {
+	if !foundFinalizer {
 		finalizers = append(finalizers, finalizer)
 		imageMon.SetFinalizers(finalizers)
-		if err := r.client.Update(ctx, imageMon); err != nil{
+		if err := r.client.Update(ctx, imageMon); err != nil {
 			return reconcile.Result{}, errors.Wrap(err, "failed to remove finalizer")
 		}
 	}
-	log.Info("have image monitor for namespace "+ imageMon.Namespace + " with name " + imageMon.Name )
+	log.Info("have image monitor for namespace " + imageMon.Namespace + " with name " + imageMon.Name)
 	// find deployment configs and deployments that match in the namespace and label them
-	if err := r.objectLabeler.LabelAllDeploymentsAndDeploymentConfigs(ctx,map[string]string{domain.HeimdallMonitored: "true"},imageMon.Spec.ExcludePattern, imageMon.Namespace); err != nil{
+	if err := r.objectLabeler.LabelAllDeploymentsAndDeploymentConfigs(ctx, map[string]string{domain.HeimdallMonitored: "true"}, imageMon.Spec.ExcludePattern, imageMon.Namespace); err != nil {
 		return reconcile.Result{}, err
 	}
 	return reconcile.Result{}, nil

@@ -29,10 +29,8 @@ func NewImageService(k8s kubernetes.Interface, ic v14.ImageV1Interface) *ImageSe
 	}
 }
 
-
-
 // if a deploymentconfig has triggers that use image change params this method will use those to find the underlying docker image no need to check all containers etc in this case
-func (is *ImageService) FindImagesFromImageChangeParams(defaultNS string, params []*v12.DeploymentTriggerImageChangeParams, dcLabels map[string]string ) ([]*domain.ClusterImage,  error) {
+func (is *ImageService) FindImagesFromImageChangeParams(defaultNS string, params []*v12.DeploymentTriggerImageChangeParams, dcLabels map[string]string) ([]*domain.ClusterImage, error) {
 	var images []*domain.ClusterImage
 	var selectors []string
 	// build a label selector based on the deploymentconfig labels
@@ -59,7 +57,7 @@ func (is *ImageService) FindImagesFromImageChangeParams(defaultNS string, params
 		// if the last triggered image is from the built in registry try find it on the ist
 		ist, err := is.imageClient.ImageStreamTags(ns).Get(p.From.Name, v1.GetOptions{})
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to find imagestreamtag " + ns + " " + p.From.Name)
+			return nil, errors.Wrap(err, "failed to find imagestreamtag "+ns+" "+p.From.Name)
 		}
 		actualImage, imageSHA, err := is.findImageAndSHABehindImageTag(ist)
 		if err != nil {
@@ -68,25 +66,25 @@ func (is *ImageService) FindImagesFromImageChangeParams(defaultNS string, params
 
 		parsedImage := ParseImage(actualImage)
 		parsedImage.FromImageStream = true
-		parsedImage.ImageStreamTag =ist
+		parsedImage.ImageStreamTag = ist
 		// if this is a local image ref we need to use the registry so as to avoid hitting the local registry
-		if ist.Tag != nil && ist.Tag.ReferencePolicy.Type == v13.LocalTagReferencePolicy{
+		if ist.Tag != nil && ist.Tag.ReferencePolicy.Type == v13.LocalTagReferencePolicy {
 			found := replaceLocalImageRef.FindStringSubmatch(imageSHA)
 			// will always be the match at index 1
-			if len(found) == 2{
-				imageSHA = strings.Replace(imageSHA,found[1],parsedImage.RegistryPath, -1)
+			if len(found) == 2 {
+				imageSHA = strings.Replace(imageSHA, found[1], parsedImage.RegistryPath, -1)
 			}
 
 		}
 		parsedImage.SHA256Path = imageSHA
 		parsedImage.Pods = []domain.PodAndContainerRef{}
-		for _,p := range pods.Items{
+		for _, p := range pods.Items {
 			podContainerRef := domain.PodAndContainerRef{}
 			podContainerRef.Namespace = p.Namespace
 			podContainerRef.Name = p.Name
 			podContainerRef.Containers = []string{}
-			for _, c := range p.Spec.Containers{
-				if c.Image == imageSHA{
+			for _, c := range p.Spec.Containers {
+				if c.Image == imageSHA {
 					podContainerRef.Containers = append(podContainerRef.Containers, c.Name)
 				}
 			}
@@ -106,10 +104,10 @@ func (is *ImageService) findImageAndSHABehindImageTag(tag *v13.ImageStreamTag) (
 	if tag.Tag.From.Kind == "DockerImage" {
 		return tag.Tag.From.Name, tag.Image.DockerImageReference, nil
 	}
-	baseImage := strings.Split(tag.Name, ":") [0]
+	baseImage := strings.Split(tag.Name, ":")[0]
 	t, err := is.imageClient.ImageStreamTags(tag.Namespace).Get(baseImage+":"+tag.Tag.From.Name, v1.GetOptions{})
 	if err != nil {
-		return "", "",err
+		return "", "", err
 	}
 	return is.findImageAndSHABehindImageTag(t)
 }
@@ -149,7 +147,7 @@ func (is *ImageService) FindImagesFromLabels(ns string, deploymentLabels map[str
 				}
 
 				i.SHA256Path = imageID
-				for _, c := range p.Spec.Containers{
+				for _, c := range p.Spec.Containers {
 					pcr.Containers = append(pcr.Containers, c.Name)
 				}
 				i.Pods = append(i.Pods, pcr)
@@ -169,8 +167,8 @@ func ParseImage(i string) *domain.ClusterImage {
 	imageParts := strings.Split(registryURLParts[len(registryURLParts)-1], ":")
 	registryURL := strings.Join(registryURLParts[:len(registryURLParts)-1], "/") + "/" + imageParts[0]
 	imagePath := strings.Split(strings.Split(si, ":")[0], "/")
-	if len(imageParts) == 1{
-		imageParts = append(imageParts,"latest")
+	if len(imageParts) == 1 {
+		imageParts = append(imageParts, "latest")
 	}
 	return &domain.ClusterImage{
 		FullPath:     i,

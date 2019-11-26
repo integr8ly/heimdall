@@ -29,9 +29,9 @@ type ContainerRepository struct {
 		} `json:"vendors"`
 		Products []*Product `json:"products"`
 		Images   []struct {
-			LastUpdateDate  string `json:"lastUpdateDate"`
-			FreshnessGrades []*FreshnessGrade`json:"freshness_grades"`
-			Repositories []struct {
+			LastUpdateDate  string            `json:"lastUpdateDate"`
+			FreshnessGrades []*FreshnessGrade `json:"freshness_grades"`
+			Repositories    []struct {
 				ImageAdvisoryID string `json:"image_advisory_id"`
 				Repository      string `json:"repository"`
 				Tags            []struct {

@@ -56,14 +56,14 @@ func (i *ImageService) Check(image *domain.ClusterImage) (domain.ReportResult, e
 		return result, errors.Wrap(err, "failed to get image details from registry")
 	}
 	clusterImageSHA := image.GetSHAFromPath()
-	if clusterImageSHA == ""{
+	if clusterImageSHA == "" {
 		return result, errors.Wrap(err, "there was no sha found associated with this image")
 	}
 	// if not using image stream we need to get the sha for the sha
-	if ! image.FromImageStream{
-		clusterImage, err :=  i.imageGetter.Get(image.SHA256Path)
-		if err != nil{
-			return result, errors.Wrap(err, "failed to get correct hash for image " + image.SHA256Path)
+	if !image.FromImageStream {
+		clusterImage, err := i.imageGetter.Get(image.SHA256Path)
+		if err != nil {
+			return result, errors.Wrap(err, "failed to get correct hash for image "+image.SHA256Path)
 		}
 		clusterImageSHA = clusterImage.Hash
 	}
@@ -71,7 +71,7 @@ func (i *ImageService) Check(image *domain.ClusterImage) (domain.ReportResult, e
 	if err != nil {
 		return result, errors.Wrap(err, "failed to get available image tags")
 	}
-	majorMinorVersion := i.resolveMajorMinorVersion(tags,image.Tag)
+	majorMinorVersion := i.resolveMajorMinorVersion(tags, image.Tag)
 
 	floatingTag, usingFloatingTag := i.resolveFloatingTag(tags, image.Tag)
 	result.FloatingTag = floatingTag
@@ -80,7 +80,7 @@ func (i *ImageService) Check(image *domain.ClusterImage) (domain.ReportResult, e
 
 		mr := regexp.MustCompile("^v?" + majorMinorVersion + "(\\W)+")
 		if !mr.MatchString(t.Name) {
-			log.Info("skipping tag ", t.Name ," as it does not match on major minor patch version " + majorMinorVersion)
+			log.Info("skipping tag ", t.Name, " as it does not match on major minor patch version "+majorMinorVersion)
 			continue
 		}
 		registryTagImage, err := i.imageGetter.Get(image.RegistryPath + ":" + t.Name)
@@ -105,7 +105,7 @@ func (i *ImageService) Check(image *domain.ClusterImage) (domain.ReportResult, e
 			result.UpToDateWithFloatingTag = floatingTagImage.Hash == clusterImageSHA
 
 			//check for latest patch version
-			for i:=0; i <= j; i++{
+			for i := 0; i <= j; i++ {
 				match, err := regexp.MatchString("^v?"+majorMinorVersion+"(\\W)+", tags[i].Name)
 				if err != nil {
 					return result, errors.Wrap(err, "failed to match on regex ^"+majorMinorVersion)
@@ -126,15 +126,15 @@ func (i *ImageService) Check(image *domain.ClusterImage) (domain.ReportResult, e
 	if result.LatestAvailablePatchVersion == result.CurrentVersion {
 		return result, nil
 	}
-	resolvableCVEs,err := i.getResolvableCVEs(image,result.LatestAvailablePatchVersion, result.CurrentVersion)
-	if err != nil{
+	resolvableCVEs, err := i.getResolvableCVEs(image, result.LatestAvailablePatchVersion, result.CurrentVersion)
+	if err != nil {
 		return result, err
 	}
 	result.ResolvableCVEs = resolvableCVEs
 	return result, nil
 }
 
-func (i *ImageService)getResolvableCVEs(image *domain.ClusterImage, latestPatchVersion, currentVersion string )([]domain.CVE, error)  {
+func (i *ImageService) getResolvableCVEs(image *domain.ClusterImage, latestPatchVersion, currentVersion string) ([]domain.CVE, error) {
 	latestImageCVEs, err := i.cveGetter.CVES(image.OrgImagePath, latestPatchVersion)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get CVEs affecting latest image tag "+latestPatchVersion)
@@ -148,7 +148,7 @@ func (i *ImageService)getResolvableCVEs(image *domain.ClusterImage, latestPatchV
 	// seems we can get the CVE more than once in the response
 	checkCVE := map[string]struct{}{}
 	for _, current := range currentImageCVEs {
-		if _, ok := checkCVE[current.ID]; ok{
+		if _, ok := checkCVE[current.ID]; ok {
 			continue
 		}
 		checkCVE[current.ID] = struct{}{}
@@ -166,13 +166,13 @@ func (i *ImageService)getResolvableCVEs(image *domain.ClusterImage, latestPatchV
 	return diff, nil
 }
 
-func (i *ImageService)resolveMajorMinorVersion(tags []rhcc.Tag, tag string)string  {
+func (i *ImageService) resolveMajorMinorVersion(tags []rhcc.Tag, tag string) string {
 	r := regexp.MustCompile("^v?\\d(\\d?\\.?)\\d?(\\d?\\d?\\d?)")
-	if tag == "latest"{
+	if tag == "latest" {
 		// as the tags are in date order we can use the tag right after latest as it will be floating and upto date with latest
-		for i, t := range tags{
-			if t.Name == "latest"{
-				if len(tags) -1 > i {
+		for i, t := range tags {
+			if t.Name == "latest" {
+				if len(tags)-1 > i {
 					tag = tags[i+1].Name
 				}
 			}
@@ -181,26 +181,24 @@ func (i *ImageService)resolveMajorMinorVersion(tags []rhcc.Tag, tag string)strin
 	return r.FindString(tag)
 }
 
-func (i *ImageService)resolveFloatingTag(tags[]rhcc.Tag, tag string)(string, bool)  {
-	majorMinor := i.resolveMajorMinorVersion(tags,tag)
+func (i *ImageService) resolveFloatingTag(tags []rhcc.Tag, tag string) (string, bool) {
+	majorMinor := i.resolveMajorMinorVersion(tags, tag)
 	var floatingTag string
-	if tag == "latest"{
+	if tag == "latest" {
 		return tag, true
 	}
-	for _, t := range tags{
+	for _, t := range tags {
 		// if we match the tag then we know if it is floating
-		if t.Name == tag && t.Type=="floating"{
+		if t.Name == tag && t.Type == "floating" {
 			return t.Name, true
 		}
-		if t.Name == majorMinor{
+		if t.Name == majorMinor {
 			floatingTag = t.Name
 		}
 	}
 	// if not then it is not using the floating tag but a persistent tag
-	if floatingTag != ""{
+	if floatingTag != "" {
 		return floatingTag, false
 	}
-	return "" , false
+	return "", false
 }
-
-
