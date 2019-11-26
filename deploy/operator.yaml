@@ -31,6 +31,8 @@ spec:
             periodSeconds: 10
             failureThreshold: 1
           env:
+            - name: DOCKER_CONFIG
+              value: "/usr/local/docker"
             - name: WATCH_NAMESPACE
               value: ""
             - name: POD_NAME
@@ -39,3 +41,10 @@ spec:
                   fieldPath: metadata.name
             - name: OPERATOR_NAME
               value: "heimdall"
+          volumeMounts:
+            - mountPath: /tmp/docker
+              name: heimdall-dockercfg
+      volumes:
+        - name: heimdall-dockercfg
+          secret:
+            secretName: heimdall-dockercfg
