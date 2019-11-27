@@ -86,9 +86,9 @@ func (is *ImageService) FindImagesFromImageChangeParams(defaultNS string, params
 			for _, c := range p.Spec.Containers {
 				if c.Image == imageSHA {
 					podContainerRef.Containers = append(podContainerRef.Containers, c.Name)
+					parsedImage.Pods = append(parsedImage.Pods, podContainerRef)
 				}
 			}
-			parsedImage.Pods = append(parsedImage.Pods, podContainerRef)
 		}
 		images = append(images, parsedImage)
 		continue
@@ -126,9 +126,14 @@ func (is *ImageService) FindImagesFromLabels(ns string, deploymentLabels map[str
 		return nil, errors.Wrap(err, "failed to list pods with labels "+strings.Join(selectors, ","))
 	}
 	// create a unique set of images
-	imageIDS := map[string]string{}
+	imageIDS := map[string]*domain.ClusterImage{}
 	// get all images from pods
 	for _, p := range pods.Items {
+		pcr := domain.PodAndContainerRef{
+			Name:       p.Name,
+			Namespace:  p.Namespace,
+			Containers: []string{},
+		}
 		for _, cs := range p.Status.ContainerStatuses {
 			//check if this image is coming from the the internal registry if so skip
 			if strings.Contains(cs.ImageID, "docker-registry") {
@@ -136,22 +141,34 @@ func (is *ImageService) FindImagesFromLabels(ns string, deploymentLabels map[str
 				continue
 			}
 			imageID := strings.Replace(cs.ImageID, "docker-pullable://", "", 1)
-			// check have we looked at this image already. Can happen when multiple pods
-			if _, ok := imageIDS[imageID]; !ok {
-				imageIDS[imageID] = cs.Image
-				i := ParseImage(cs.Image)
-				pcr := domain.PodAndContainerRef{
-					Name:       p.Name,
-					Namespace:  p.Namespace,
-					Containers: []string{},
-				}
 
-				i.SHA256Path = imageID
-				for _, c := range p.Spec.Containers {
-					pcr.Containers = append(pcr.Containers, c.Name)
+			// check have we looked at this image already. Can happen when multiple pods or multiple containers with same image
+			var image *domain.ClusterImage
+			if i, ok := imageIDS[imageID]; ok {
+				image = i
+			} else {
+				image = ParseImage(cs.Image)
+				image.SHA256Path = imageID
+
+			}
+
+			for _, c := range p.Spec.Containers {
+				pcr.Containers = append(pcr.Containers, c.Name)
+			}
+
+			foundPod := false
+			for _, sp := range image.Pods {
+				if sp.Name == p.Name {
+					foundPod = true
+					break
 				}
-				i.Pods = append(i.Pods, pcr)
-				images = append(images, i)
+			}
+			if !foundPod {
+				image.Pods = append(image.Pods, pcr)
+			}
+			if _, ok := imageIDS[imageID]; !ok {
+				imageIDS[imageID] = image
+				images = append(images, image)
 			}
 		}
 	}

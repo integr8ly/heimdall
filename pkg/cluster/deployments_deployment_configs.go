@@ -59,9 +59,11 @@ func (ol *ObjectsLabeler) LabelAllDeploymentsAndDeploymentConfigs(ctx context.Co
 		if dep.Labels == nil {
 			dep.Labels = map[string]string{}
 		}
-		if matchRegex.MatchString(dep.Name) {
-			fmt.Println("skipping ", dep.Name, " as matched by excludePattern "+excludePattern)
-			continue
+		if excludePattern != "" {
+			if matchRegex.MatchString(dep.Name) {
+				fmt.Println("skipping ", dep.Name, " as matched by excludePattern "+excludePattern)
+				continue
+			}
 		}
 		for k, v := range labels {
 			dep.Labels[k] = v
@@ -93,9 +95,11 @@ func (ol *ObjectsLabeler) RemoveLabelsAnnotations(ctx context.Context, labels ma
 	}
 
 	for _, dc := range dcList.Items {
-		if matchRegex.MatchString(dc.Name) {
-			fmt.Println("skipping ", dc.Name, " as matched by excludePattern")
-			continue
+		if excludePattern != "" {
+			if matchRegex.MatchString(dc.Name) {
+				fmt.Println("skipping ", dc.Name, " as matched by excludePattern")
+				continue
+			}
 		}
 
 		if dc.Labels != nil {
@@ -113,10 +117,11 @@ func (ol *ObjectsLabeler) RemoveLabelsAnnotations(ctx context.Context, labels ma
 		}
 	}
 	for _, dep := range depList.Items {
-
-		if matchRegex.MatchString(dep.Name) {
-			fmt.Println("skipping ", dep.Name, " as matched by excludePattern")
-			continue
+		if excludePattern != "" {
+			if matchRegex.MatchString(dep.Name) {
+				fmt.Println("skipping ", dep.Name, " as matched by excludePattern")
+				continue
+			}
 		}
 		if dep.Labels != nil {
 			for k, _ := range labels {

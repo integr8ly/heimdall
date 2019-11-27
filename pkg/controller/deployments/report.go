@@ -67,9 +67,9 @@ func (r *Reports) Generate(ns, name string) ([]domain.ReportResult, error) {
 				// log and carry on as we may have valid reports
 				fmt.Println(err, "a report failed ")
 			} else {
+				result.Component = d.Name
 				reports = append(reports, result)
 			}
-			result.Component = d.Name
 			checked[i.FullPath] = result
 		}
 	}

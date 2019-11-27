@@ -46,82 +46,123 @@ func NewImagesService(imageGetter ImageGetter, versGetter ImageVersionsGetter, c
 	return is
 }
 
+type registryDigest struct {
+	TagDigest string
+	SHADigest string
+}
+
+func (i *ImageService) clusterImageRegistryDigests(image *domain.ClusterImage) (registryDigest, error) {
+
+	var (
+		clusterImageSHAHash, clusterImageTagHash string
+		err                                      error
+	)
+	// Even though we have a SHA, if it is not from an imagestream the digest in the container seems to be calculated differently. However when we ask
+	// the registry for the image that matches the digest in the container, it gives us back an image and that digest will match the tag being used.
+	if !image.FromImageStream {
+		clusterSHAImage, err := i.imageGetter.Get(image.SHA256Path)
+		if err != nil {
+			return registryDigest{}, errors.Wrap(err, "failed to get correct hash for image "+image.SHA256Path)
+		}
+		clusterImageSHAHash = clusterSHAImage.Hash
+	} else {
+		clusterImageSHAHash = image.GetSHAFromPath()
+	}
+
+	clusterTagImage, err := i.imageGetter.Get(image.FullPath)
+	if err != nil {
+		return registryDigest{}, errors.Wrap(err, "failed to get image details from registry")
+	}
+	clusterImageTagHash = clusterTagImage.Hash
+
+	return registryDigest{
+		TagDigest: clusterImageTagHash,
+		SHADigest: clusterImageSHAHash,
+	}, nil
+}
+
+// Check takes the cluster image and runs through a set of checks to find out whether the image in the cluster is
+// up to date with the image in the registry, whether there is a new patch image available and also figures out which
+// CVEs would be fixed by updating.
 func (i *ImageService) Check(image *domain.ClusterImage) (domain.ReportResult, error) {
 	// get the registry image details based on the image we found
 	fmt.Println("checking image : " + image.FullPath)
 	result := domain.ReportResult{}
 	result.ClusterImage = image
-	clusterTagImage, err := i.imageGetter.Get(image.FullPath)
+	clusterImageDigests, err := i.clusterImageRegistryDigests(image)
 	if err != nil {
-		return result, errors.Wrap(err, "failed to get image details from registry")
-	}
-	clusterImageSHA := image.GetSHAFromPath()
-	if clusterImageSHA == "" {
-		return result, errors.Wrap(err, "there was no sha found associated with this image")
-	}
-	// if not using image stream we need to get the sha for the sha
-	if !image.FromImageStream {
-		clusterImage, err := i.imageGetter.Get(image.SHA256Path)
-		if err != nil {
-			return result, errors.Wrap(err, "failed to get correct hash for image "+image.SHA256Path)
-		}
-		clusterImageSHA = clusterImage.Hash
+		return result, errors.Wrap(err, " failed to disover the cluster image SHA ")
 	}
 	tags, err := i.versionsGetter.AvailableTagsSortedByDate(image.OrgImagePath)
 	if err != nil {
 		return result, errors.Wrap(err, "failed to get available image tags")
 	}
 	majorMinorVersion := i.resolveMajorMinorVersion(tags, image.Tag)
-
+	isPersistent, index := i.isPersistentTag(tags, image.Tag)
 	floatingTag, usingFloatingTag := i.resolveFloatingTag(tags, image.Tag)
 	result.FloatingTag = floatingTag
 	result.UsingFloatingTag = usingFloatingTag
-	for j, t := range tags {
-
-		mr := regexp.MustCompile("^v?" + majorMinorVersion + "(\\W)+")
-		if !mr.MatchString(t.Name) {
-			log.Info("skipping tag ", t.Name, " as it does not match on major minor patch version "+majorMinorVersion)
-			continue
-		}
-		registryTagImage, err := i.imageGetter.Get(image.RegistryPath + ":" + t.Name)
+	result.ActualImageRef = image.FullPath
+	result.UpToDateWithOwnTag = clusterImageDigests.TagDigest == clusterImageDigests.SHADigest
+	floatingTagImage, err := i.imageGetter.Get(image.RegistryPath + ":" + result.FloatingTag)
+	if err != nil {
+		return result, errors.Wrap(err, "failed to get floating tag image from registry")
+	}
+	if isPersistent {
+		t := tags[index]
+		result.CurrentVersion = t.Name
+		result.CurrentGrade = t.FreshnessGrade
+		result.UpToDateWithFloatingTag = floatingTagImage.Hash == clusterImageDigests.SHADigest
+		//check for latest patch version
+		nextTag, err := findNextPatchImage(tags[:index+1], majorMinorVersion)
 		if err != nil {
-			return result, errors.Wrap(err, "failed to get image details from registry for image "+image.RegistryPath+":"+t.Name)
+			return result, err
 		}
-		// is the image on the cluster (ie the hash in the container) up to date with the has for the image tag in the registry
-		result.UpToDateWithOwnTag = clusterTagImage.Hash == clusterImageSHA
+		result.LatestAvailablePatchVersion = nextTag.Name
+		result.LatestGrade = nextTag.FreshnessGrade
 
-		if registryTagImage.Hash == clusterImageSHA {
-			if t.Name == "latest" && len(tags) > 1 {
-				// we continue as there will be an actual specific image version that matches
+	} else {
+		// need to find the actual persistent tag for this floating tag
+		for j, t := range tags {
+			mr := regexp.MustCompile("^v?" + majorMinorVersion + "(\\W)+")
+			if !mr.MatchString(t.Name) {
+				log.Info("skipping tag ", t.Name, " as it does not match on major minor patch version "+majorMinorVersion)
 				continue
 			}
-			result.CurrentVersion = t.Name
-			result.CurrentGrade = t.FreshnessGrade
-
-			floatingTagImage, err := i.imageGetter.Get(image.RegistryPath + ":" + result.FloatingTag)
+			registryTagImage, err := i.imageGetter.Get(image.RegistryPath + ":" + t.Name)
 			if err != nil {
-				return result, errors.Wrap(err, "failed to get floating tag image from registry")
+				return result, errors.Wrap(err, "failed to get image details from registry for image "+image.RegistryPath+":"+t.Name)
 			}
-			result.UpToDateWithFloatingTag = floatingTagImage.Hash == clusterImageSHA
 
-			//check for latest patch version
-			for i := 0; i <= j; i++ {
-				match, err := regexp.MatchString("^v?"+majorMinorVersion+"(\\W)+", tags[i].Name)
-				if err != nil {
-					return result, errors.Wrap(err, "failed to match on regex ^"+majorMinorVersion)
+			if registryTagImage.Hash == clusterImageDigests.SHADigest {
+				if t.Name == "latest" && len(tags) > 1 {
+					// we continue as there will be an actual specific image version that matches
+					continue
 				}
-				if match {
-					// they are in order so break out now
-					result.LatestAvailablePatchVersion = tags[i].Name
-					result.LatestGrade = tags[i].FreshnessGrade
-					break
+				result.CurrentVersion = t.Name
+				result.CurrentGrade = t.FreshnessGrade
+				result.UpToDateWithFloatingTag = floatingTagImage.Hash == clusterImageDigests.SHADigest
+				var (
+					nextTag rhcc.Tag
+					err     error
+				)
+				if j == 0 {
+					// the current tag is the latest available tag
+					nextTag = tags[0]
+				} else {
+					//check for latest patch version
+					nextTag, err = findNextPatchImage(tags[:j+1], majorMinorVersion)
+					if err != nil {
+						return result, err
+					}
 				}
+				result.LatestAvailablePatchVersion = nextTag.Name
+				result.LatestGrade = nextTag.FreshnessGrade
+				break
 			}
-			break
 		}
-	}
 
-	result.ActualImageRef = image.FullPath
+	}
 	// upto date no need to check cves
 	if result.LatestAvailablePatchVersion == result.CurrentVersion {
 		return result, nil
@@ -132,6 +173,21 @@ func (i *ImageService) Check(image *domain.ClusterImage) (domain.ReportResult, e
 	}
 	result.ResolvableCVEs = resolvableCVEs
 	return result, nil
+}
+
+func findNextPatchImage(tags []rhcc.Tag, majorMinorVersion string) (rhcc.Tag, error) {
+	for i := range tags {
+		match, err := regexp.MatchString("^v?"+majorMinorVersion+"(\\W)+", tags[i].Name)
+		if err != nil {
+			return rhcc.Tag{}, errors.Wrap(err, "failed to compile regex ^v?"+majorMinorVersion+"(\\W)+")
+		}
+		if match {
+			// they are in order so break out now
+			return tags[i], nil
+		}
+	}
+	// if we don't find a newer one we are on the latest one take the last one in the array as this is the index where we found the match
+	return tags[len(tags)-1], nil
 }
 
 func (i *ImageService) getResolvableCVEs(image *domain.ClusterImage, latestPatchVersion, currentVersion string) ([]domain.CVE, error) {
@@ -179,6 +235,15 @@ func (i *ImageService) resolveMajorMinorVersion(tags []rhcc.Tag, tag string) str
 		}
 	}
 	return r.FindString(tag)
+}
+
+func (i *ImageService) isPersistentTag(tags []rhcc.Tag, tag string) (bool, int) {
+	for i, t := range tags {
+		if t.Name == tag {
+			return t.Type == "persistent", i
+		}
+	}
+	return false, -1
 }
 
 func (i *ImageService) resolveFloatingTag(tags []rhcc.Tag, tag string) (string, bool) {

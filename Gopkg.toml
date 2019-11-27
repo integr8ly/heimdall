@@ -17,6 +17,17 @@ required = [
   revision = "3dcf91f64f638563e5106f21f50c31fa361c918d"
 
 [[override]]
+  name = "github.com/openshift/api"
+  # revision for tag "openshift 3.11"
+  revision = "8741ff068a473be041d7bafb4502c12e4f10aab5"
+
+
+[[override]]
+  name = "github.com/openshift/client-go"
+  # revision for tag "openshift 3.11"
+  revision = "431ec9a26e5021f35fa41ee9a89842db9bfdb370"
+
+[[override]]
   name = "k8s.io/api"
   # revision for tag "kubernetes-1.12.3"
   revision = "b503174bad5991eb66f18247f52e41c3258f6348"
