@@ -126,7 +126,7 @@ func (i *ImageService) Check(image *domain.ClusterImage) (domain.ReportResult, e
 		for j, t := range tags {
 			mr := regexp.MustCompile("^v?" + majorMinorVersion + "(\\W)+")
 			if !mr.MatchString(t.Name) {
-				log.Info("skipping tag ", t.Name, " as it does not match on major minor patch version "+majorMinorVersion)
+				log.Info("skipping tag ", t.Name, " as it does not match on major minor patch version "+majorMinorVersion+".*")
 				continue
 			}
 			registryTagImage, err := i.imageGetter.Get(image.RegistryPath + ":" + t.Name)

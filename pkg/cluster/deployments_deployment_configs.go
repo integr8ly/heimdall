@@ -41,14 +41,16 @@ func (ol *ObjectsLabeler) LabelAllDeploymentsAndDeploymentConfigs(ctx context.Co
 	}
 
 	for _, dc := range dcList.Items {
-		if excludePattern != "" {
-			if matchRegex.MatchString(dc.Name) {
-				fmt.Println("skipping ", dc.Name, " as matched by excludePattern"+excludePattern)
-				continue
-			}
-		}
 		// dont care about over writing as these will be our namespaced labels
 		for k, v := range labels {
+			if excludePattern != "" {
+				if matchRegex.MatchString(dc.Name) {
+					// ensure the label is not on the dc
+					delete(dc.Labels, k)
+
+					continue
+				}
+			}
 			dc.Labels[k] = v
 		}
 		if err := ol.client.Update(context.TODO(), &dc); err != nil {
@@ -59,13 +61,15 @@ func (ol *ObjectsLabeler) LabelAllDeploymentsAndDeploymentConfigs(ctx context.Co
 		if dep.Labels == nil {
 			dep.Labels = map[string]string{}
 		}
-		if excludePattern != "" {
-			if matchRegex.MatchString(dep.Name) {
-				fmt.Println("skipping ", dep.Name, " as matched by excludePattern "+excludePattern)
-				continue
-			}
-		}
+
 		for k, v := range labels {
+			if excludePattern != "" {
+				if matchRegex.MatchString(dep.Name) {
+					fmt.Println("skipping ", dep.Name, " as matched by excludePattern "+excludePattern)
+					delete(dep.Labels, k)
+					continue
+				}
+			}
 			dep.Labels[k] = v
 		}
 		if err := ol.client.Update(context.TODO(), &dep); err != nil {
@@ -75,11 +79,10 @@ func (ol *ObjectsLabeler) LabelAllDeploymentsAndDeploymentConfigs(ctx context.Co
 	return nil
 }
 
-func (ol *ObjectsLabeler) RemoveLabelsAnnotations(ctx context.Context, labels map[string]string, excludePattern string, ns string) error {
+func (ol *ObjectsLabeler) RemoveLabelsAnnotations(ctx context.Context, labels map[string]string, ns string) error {
 	dcList := &v1.DeploymentConfigList{}
 	depList := &v12.DeploymentList{}
 	var listOpts = &client.ListOptions{Namespace: ns}
-	var matchRegex *regexp.Regexp
 
 	if err := ol.client.List(ctx, listOpts, dcList); err != nil {
 		return errors.Wrap(err, "failed to list deployment configs in namespace "+ns)
@@ -88,19 +91,7 @@ func (ol *ObjectsLabeler) RemoveLabelsAnnotations(ctx context.Context, labels ma
 		return errors.Wrap(err, "failed to list deployments  in namespace "+ns)
 	}
 
-	var err error
-	matchRegex, err = regexp.Compile(excludePattern)
-	if err != nil {
-		return errors.Wrap(err, "failed to compile pattern to exclude "+excludePattern)
-	}
-
 	for _, dc := range dcList.Items {
-		if excludePattern != "" {
-			if matchRegex.MatchString(dc.Name) {
-				fmt.Println("skipping ", dc.Name, " as matched by excludePattern")
-				continue
-			}
-		}
 
 		if dc.Labels != nil {
 			for k, _ := range labels {
@@ -117,12 +108,6 @@ func (ol *ObjectsLabeler) RemoveLabelsAnnotations(ctx context.Context, labels ma
 		}
 	}
 	for _, dep := range depList.Items {
-		if excludePattern != "" {
-			if matchRegex.MatchString(dep.Name) {
-				fmt.Println("skipping ", dep.Name, " as matched by excludePattern")
-				continue
-			}
-		}
 		if dep.Labels != nil {
 			for k, _ := range labels {
 				delete(dep.Labels, k)
