@@ -366,7 +366,7 @@ func TestImageService_FindImagesFromLabels(t *testing.T) {
 			},
 		},
 		{
-			Name:      "Test find multiple images in multiple pods",
+			Name:      "Test finding same image in multiple pods returns only 1 image",
 			Namespace: "test",
 			Labels:    map[string]string{},
 			K8sClient: func() kubernetes.Interface {

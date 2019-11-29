@@ -134,7 +134,7 @@ func (r *ReconcileDeploymentConfig) Reconcile(request reconcile.Request) (reconc
 
 	log.Info("deployment config " + dc.Name + " in namespace " + dc.Namespace + " is being monitored by heimdall")
 	// get the deployment config and work through the images we discover
-	report, err := r.reportService.Generate(request.Namespace, request.Name)
+	reports, err := r.reportService.Generate(request.Namespace, request.Name)
 	if err != nil {
 		log.Error(err, "failed to generate a report for images in dc "+request.Name+" in namespace "+request.Namespace)
 		return reconcile.Result{RequeueAfter: requeAfterFourHours}, nil
@@ -151,9 +151,9 @@ func (r *ReconcileDeploymentConfig) Reconcile(request reconcile.Request) (reconc
 		dc.Annotations = map[string]string{}
 	}
 	dc.Annotations[domain.HeimdallLastChecked] = time.Now().Format(domain.TimeFormat)
-	log.Info("generated reports for deployment ", "reports", len(report), "namespace", request.Namespace, "name", request.Name)
+	log.Info("generated reports for deployment ", "reports", len(reports), "namespace", request.Namespace, "name", request.Name)
 	checked := []string{}
-	for _, rep := range report {
+	for _, rep := range reports {
 		checked = append(checked, rep.ClusterImage.SHA256Path)
 		if err := r.podService.LabelPods(&rep); err != nil {
 			log.Error(err, "failed to label pod ")

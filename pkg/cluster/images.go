@@ -86,9 +86,9 @@ func (is *ImageService) FindImagesFromImageChangeParams(defaultNS string, params
 			for _, c := range p.Spec.Containers {
 				if c.Image == imageSHA {
 					podContainerRef.Containers = append(podContainerRef.Containers, c.Name)
-					parsedImage.Pods = append(parsedImage.Pods, podContainerRef)
 				}
 			}
+			parsedImage.Pods = append(parsedImage.Pods, podContainerRef)
 		}
 		images = append(images, parsedImage)
 		continue

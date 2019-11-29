@@ -72,7 +72,7 @@ func (r *ReconcileImageMonitor) Reconcile(request reconcile.Request) (reconcile.
 	}
 	finalizers := imageMon.GetFinalizers()
 	if imageMon.DeletionTimestamp != nil {
-		if err := r.objectLabeler.RemoveLabelsAnnotations(ctx, map[string]string{domain.HeimdallMonitored: "true"}, imageMon.Spec.ExcludePattern, imageMon.Namespace); err != nil {
+		if err := r.objectLabeler.RemoveLabelsAnnotations(ctx, map[string]string{domain.HeimdallMonitored: "true"}, imageMon.Namespace); err != nil {
 			return reconcile.Result{}, err
 		}
 		for i, f := range finalizers {
