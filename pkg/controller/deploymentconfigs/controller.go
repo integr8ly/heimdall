@@ -150,7 +150,6 @@ func (r *ReconcileDeploymentConfig) Reconcile(request reconcile.Request) (reconc
 	if dc.Annotations == nil {
 		dc.Annotations = map[string]string{}
 	}
-	dc.Annotations[domain.HeimdallLastChecked] = time.Now().Format(domain.TimeFormat)
 	log.Info("generated reports for deployment ", "reports", len(reports), "namespace", request.Namespace, "name", request.Name)
 	checked := []string{}
 	for _, rep := range reports {
@@ -160,6 +159,7 @@ func (r *ReconcileDeploymentConfig) Reconcile(request reconcile.Request) (reconc
 			return reconcile.Result{}, nil
 		}
 	}
+	dc.Annotations[domain.HeimdallLastChecked] = time.Now().Format(domain.TimeFormat)
 	dc.Annotations[domain.HeimdallImagesChecked] = strings.Join(checked, ",")
 	if _, err := r.dcClient.DeploymentConfigs(request.Namespace).Update(dc); err != nil {
 		// in this case we will requeue log the error and requeue to ensure we dont keep retrying the checks

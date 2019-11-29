@@ -42,6 +42,10 @@ func (p *Pods) LabelPods(rep *domain.ReportResult) error {
 		if pod.Annotations == nil {
 			pod.Annotations = map[string]string{}
 		}
+		if pod.Status.Phase != v1.PodRunning {
+			log.Info("not labeling pod as it is not running")
+			return errors.New("could not label pod " + pod.Name + " in namespace " + pod.Namespace + " as it is not in a running phase")
+		}
 
 		pod.Labels[LabelAggregateResolvableImportantCVE] = fmt.Sprintf("%v", len(rep.GetResolvableImportantCVEs()) > 0)
 		pod.Labels[LabelAggregateResolvableCritCVE] = fmt.Sprintf("%v", len(rep.GetResolvableCriticalCVEs()) > 0)
