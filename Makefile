@@ -1,7 +1,7 @@
 ORG=integreatly
 PROJECT=heimdall-operator
 REG=quay.io
-TAG=master
+TAG=release-1.0.0
 COMPILE_TARGET=./tmp/_output/bin/$(PROJECT)
 NAMESPACE=""
 
