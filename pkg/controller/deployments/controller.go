@@ -113,15 +113,15 @@ func (r *ReconcileDeployment) Reconcile(request reconcile.Request) (reconcile.Re
 	if d.Annotations == nil {
 		d.Annotations = map[string]string{}
 	}
-	d.Annotations[domain.HeimdallLastChecked] = time.Now().Format(domain.TimeFormat)
 	checked := []string{}
 	for _, rep := range report {
 		checked = append(checked, rep.ClusterImage.SHA256Path)
 		if err := r.podService.LabelPods(&rep); err != nil {
-			log.Error(err, "failed to label pod ")
+			log.Error(err, "failed to label pod will retry as soon as possible")
 			return reconcile.Result{}, nil
 		}
 	}
+	d.Annotations[domain.HeimdallLastChecked] = time.Now().Format(domain.TimeFormat)
 	d.Annotations[domain.HeimdallImagesChecked] = strings.Join(checked, ",")
 	if err := r.client.Update(ctx, d); err != nil {
 		log.Error(err, "failed to annotate deployment "+d.Namespace+" "+d.Name)

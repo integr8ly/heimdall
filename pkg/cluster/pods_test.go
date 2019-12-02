@@ -27,6 +27,7 @@ func TestPods_LabelPods(t *testing.T) {
 					Name:      "test-pod",
 					Namespace: "test",
 				},
+				Status: v1.PodStatus{Phase: v1.PodRunning},
 			},
 			Report: &domain.ReportResult{
 				ResolvableCVEs: []domain.CVE{domain.CVE{
@@ -72,6 +73,7 @@ func TestPods_LabelPods(t *testing.T) {
 					Namespace: "test",
 					Name:      "test-pod",
 				},
+				Status: v1.PodStatus{Phase: v1.PodRunning},
 			},
 			Report: &domain.ReportResult{
 				ResolvableCVEs: []domain.CVE{{
@@ -131,6 +133,27 @@ func TestPods_LabelPods(t *testing.T) {
 			Name: "test we get an error when we fail to find a pod",
 			Pod: &v1.Pod{
 				ObjectMeta: v12.ObjectMeta{},
+			},
+			Report: &domain.ReportResult{
+				ClusterImage: &domain.ClusterImage{
+					Pods: []domain.PodAndContainerRef{
+						{
+							Name:      "test-pod",
+							Namespace: "test",
+							Containers: []string{
+								"container",
+							},
+						},
+					},
+				},
+			},
+			ExpectErr: true,
+		},
+		{
+			Name: "test we get an error when pod not running",
+			Pod: &v1.Pod{
+				ObjectMeta: v12.ObjectMeta{},
+				Status:     v1.PodStatus{Phase: v1.PodPending},
 			},
 			Report: &domain.ReportResult{
 				ClusterImage: &domain.ClusterImage{
