@@ -3,9 +3,7 @@ PROJECT=heimdall-operator
 REG=quay.io
 TAG=master
 COMPILE_TARGET=./tmp/_output/bin/$(PROJECT)
-NAMESPACE=""
-
-SHELL=/bin/bash
+NAMESPACE=heimdall
 
 .PHONY: code/gen
 code/gen:
@@ -20,6 +18,10 @@ code/check:
 code/fix:
 	@gofmt -w `find . -type f -name '*.go' -not -path "./vendor/*"`
 
+.PHONY: code/compile
+code/compile:
+	@GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o=$(COMPILE_TARGET) ./cmd/manager
+
 .PHONY: setup/moq
 setup/moq:
 	dep ensure
@@ -33,6 +35,10 @@ code/run:
 test/unit:
 	@./scripts/ci/unit_test.sh
 
+.PHONY: test/e2e
+test/e2e:
+	@echo Running e2e tests: TODO
+
 .PHONY: image/build
 image/build:
 	@operator-sdk build $(REG)/$(ORG)/$(PROJECT):$(TAG)
@@ -44,9 +50,15 @@ image/push:
 .PHONY: image/build/push
 image/build/push: image/build image/push
 
-.PHONY: cluster/prepare/local
-cluster/prepare/local:
-	-oc create -f deploy/crds/*_crd.yaml
-	@oc create -f deploy/service_account.yaml
-	@oc create -f deploy/role.yaml
-	@oc create -f deploy/role_binding.yaml
+.PHONY: cluster/prepare
+cluster/prepare:
+	-oc create namespace $(NAMESPACE)
+	-oc create -f deploy/crds/*_crd.yaml -n $(NAMESPACE)
+	@oc create -f deploy/service_account.yaml -n $(NAMESPACE)
+	@oc create -f deploy/role.yaml -n $(NAMESPACE)
+	@oc create -f deploy/role_binding.yaml -n $(NAMESPACE)
+
+.PHONY: cluster/clean
+cluster/clean:
+	-oc delete namespace $(NAMESPACE)
+	-oc delete -f deploy/crds/*_crd.yaml -n $(NAMESPACE)
