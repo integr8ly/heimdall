@@ -5,6 +5,8 @@ TAG=master
 COMPILE_TARGET=./tmp/_output/bin/$(PROJECT)
 NAMESPACE=heimdall
 
+SHELL=/bin/bash
+
 .PHONY: code/gen
 code/gen:
 	operator-sdk generate k8s
