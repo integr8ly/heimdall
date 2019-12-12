@@ -24,14 +24,22 @@ code/fix:
 code/compile:
 	@GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o=$(COMPILE_TARGET) ./cmd/manager
 
-.PHONY: setup/moq
-setup/moq:
-	dep ensure
-	cd vendor/github.com/matryer/moq/ && go install .
-
 .PHONY: code/run
 code/run:
 	@operator-sdk up local --namespace=$(NAMESPACE)
+
+.PHONY: cluster/prepare
+cluster/prepare:
+	-oc create namespace $(NAMESPACE)
+	-oc create -f deploy/crds/*_crd.yaml -n $(NAMESPACE)
+	@oc create -f deploy/service_account.yaml -n $(NAMESPACE)
+	@oc create -f deploy/role.yaml -n $(NAMESPACE)
+	@oc create -f deploy/role_binding.yaml -n $(NAMESPACE)
+
+.PHONY: cluster/clean
+cluster/clean:
+	-oc delete namespace $(NAMESPACE)
+	-oc delete -f deploy/crds/*_crd.yaml -n $(NAMESPACE)
 
 .PHONY: test/unit
 test/unit:
@@ -52,15 +60,3 @@ image/push:
 .PHONY: image/build/push
 image/build/push: image/build image/push
 
-.PHONY: cluster/prepare
-cluster/prepare:
-	-oc create namespace $(NAMESPACE)
-	-oc create -f deploy/crds/*_crd.yaml -n $(NAMESPACE)
-	@oc create -f deploy/service_account.yaml -n $(NAMESPACE)
-	@oc create -f deploy/role.yaml -n $(NAMESPACE)
-	@oc create -f deploy/role_binding.yaml -n $(NAMESPACE)
-
-.PHONY: cluster/clean
-cluster/clean:
-	-oc delete namespace $(NAMESPACE)
-	-oc delete -f deploy/crds/*_crd.yaml -n $(NAMESPACE)

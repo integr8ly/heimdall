@@ -3,4 +3,4 @@ kind: ImageMonitor
 metadata:
   name: example-imagemonitor
 spec:
-  excludePattern: ""
+  excludePattern: "todo"
