@@ -27,10 +27,10 @@ func (ol *ObjectsLabeler) LabelAllDeploymentsAndDeploymentConfigs(ctx context.Co
 	var listOpts = &client.ListOptions{Namespace: ns}
 	var matchRegex *regexp.Regexp
 
-	if err := ol.client.List(ctx, listOpts, dcList); err != nil {
+	if err := ol.client.List(ctx, dcList, listOpts); err != nil {
 		return errors.Wrap(err, "failed to list deployment configs in namespace "+ns)
 	}
-	if err := ol.client.List(ctx, listOpts, depList); err != nil {
+	if err := ol.client.List(ctx, depList, listOpts); err != nil {
 		return errors.Wrap(err, "failed to list deployments  in namespace "+ns)
 	}
 
@@ -84,10 +84,10 @@ func (ol *ObjectsLabeler) RemoveLabelsAnnotations(ctx context.Context, labels ma
 	depList := &v12.DeploymentList{}
 	var listOpts = &client.ListOptions{Namespace: ns}
 
-	if err := ol.client.List(ctx, listOpts, dcList); err != nil {
+	if err := ol.client.List(ctx, dcList, listOpts); err != nil {
 		return errors.Wrap(err, "failed to list deployment configs in namespace "+ns)
 	}
-	if err := ol.client.List(ctx, listOpts, depList); err != nil {
+	if err := ol.client.List(ctx, depList, listOpts); err != nil {
 		return errors.Wrap(err, "failed to list deployments  in namespace "+ns)
 	}
 
