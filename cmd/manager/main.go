@@ -53,9 +53,9 @@ func main() {
 
 	printVersion()
 
-	namespace, err := k8sutil.GetWatchNamespace()
+	namespace, err := k8sutil.GetOperatorNamespace()
 	if err != nil {
-		log.Error(err, "failed to get watch namespace")
+		log.Error(err, "failed to get operator namespace")
 		os.Exit(1)
 	}
 
