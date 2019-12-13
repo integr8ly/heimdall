@@ -11,6 +11,8 @@ rules:
   - pods
   - deploymentconfigs
   - configmaps
+  - services
+  - services/finalizers
   verbs:
   - '*'
 - apiGroups:
@@ -22,7 +24,9 @@ rules:
 - apiGroups:
   - apps
   resources:
+  - replicasets
   - deployments
+  - deployments/finalizers
   verbs:
   - '*'
 - apiGroups:
