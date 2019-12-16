@@ -46,8 +46,11 @@ test/unit:
 	@./scripts/ci/unit_test.sh
 
 .PHONY: test/e2e
-test/e2e:
-	@echo Running e2e tests: TODO
+test/e2e: cluster/clean
+	-oc create namespace $(NAMESPACE)
+	@echo Running e2e tests
+	GOFLAGS='' operator-sdk --verbose test local ./test/e2e --namespace $(NAMESPACE) --go-test-flags "-timeout=60m" --debug
+	make cluster/clean
 
 .PHONY: image/build
 image/build:
