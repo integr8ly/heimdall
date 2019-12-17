@@ -2,7 +2,7 @@
 
 ### Dockerfile.tools
 
-Base image used on CI for all builds and test jobs.
+Base image used on CI for all builds and test jobs. See [here](https://github.com/integr8ly/ci-cd/blob/master/openshift-ci/README.md) for more information on creating and deploying a new image.
 
 #### Build and Test
 
