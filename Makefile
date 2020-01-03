@@ -63,3 +63,11 @@ image/push:
 .PHONY: image/build/push
 image/build/push: image/build image/push
 
+.PHONY: vendor/check
+vendor/check: vendor/fix
+	git diff --exit-code vendor/
+
+.PHONY: vendor/fix
+vendor/fix:
+	go mod tidy
+	go mod vendor
