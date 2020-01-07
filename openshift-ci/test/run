@@ -6,13 +6,14 @@
 # The image has to be available before this script is executed.
 #
 
+WORK_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
 docker run --rm --entrypoint=/bin/sh ${IMAGE_NAME} -c 'operator-sdk version'
 docker run --rm --entrypoint=/bin/sh ${IMAGE_NAME} -c 'go version'
-docker run --rm --entrypoint=/bin/sh ${IMAGE_NAME} -c "cd /go/src/; mkdir hello; cd hello;
-echo 'package main
-import \"fmt\"
-func main() {
-    fmt.Println(\"hello world\")
-}' > main.go; go run main.go"
+
+docker run --rm -u $UID -v "${WORK_DIR}/../..:/heimdall:z" --entrypoint=/bin/sh ${IMAGE_NAME} -c "cd /heimdall && make vendor/check"
+docker run --rm -u $UID -v "${WORK_DIR}/../..:/heimdall:z" --entrypoint=/bin/sh ${IMAGE_NAME} -c "cd /heimdall && make code/check"
+docker run --rm -u $UID -v "${WORK_DIR}/../..:/heimdall:z" --entrypoint=/bin/sh ${IMAGE_NAME} -c "cd /heimdall && make code/compile"
+docker run --rm -u $UID -v "${WORK_DIR}/../..:/heimdall:z" --entrypoint=/bin/sh ${IMAGE_NAME} -c "cd /heimdall && make test/unit"
 
 echo "SUCCESS!"
