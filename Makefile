@@ -51,6 +51,9 @@ test/e2e/prow: test/e2e
 .PHONY: test/e2e
 test/e2e: cluster/clean
 	-oc create namespace $(NAMESPACE)
+	-oc project $(NAMESPACE)
+	-oc delete secret heimdall-dockercfg
+	@oc create secret docker-registry heimdall-dockercfg --docker-server registry.redhat.io --docker-password "$(HEIMDALL_REGISTRY_PASSWORD)" --docker-username "$(HEIMDALL_REGISTRY_USERNAME)"
 	@echo Running e2e tests
 	GOFLAGS='' operator-sdk --verbose test local ./test/e2e --namespace $(NAMESPACE) --go-test-flags "-timeout=60m" --debug
 	make cluster/clean
