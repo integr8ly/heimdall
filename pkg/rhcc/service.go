@@ -2,6 +2,7 @@ package rhcc
 
 import (
 	"encoding/json"
+	"github.com/integr8ly/heimdall/pkg/customMetrics"
 	"github.com/pkg/errors"
 
 	"fmt"
@@ -35,16 +36,20 @@ func (c *Client) AvailableTagsSortedByDate(org string) ([]Tag, error) {
 	// done to allow us to call the API without the need for credentials (should revisit)
 	url := fmt.Sprintf(images, host, "registry.access.redhat.com", image)
 	resp, err := http.Get(url)
+	customMetrics.RegistryCallsTotal.Inc()
 	if err != nil {
+		customMetrics.RegistryCallsFailure.Inc()
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
+		customMetrics.RegistryCallsFailure.Inc()
 		return nil, errors.New("unexpected response from rhcc api " + resp.Status)
 	}
 	var format = "20060102T15:04:05.000-0700"
 	defer resp.Body.Close()
 	dec := json.NewDecoder(resp.Body)
 	if err := dec.Decode(cr); err != nil {
+		customMetrics.RegistryCallsFailure.Inc()
 		return nil, err
 	}
 	// sort by added date
@@ -91,6 +96,7 @@ func (c *Client) AvailableTagsSortedByDate(org string) ([]Tag, error) {
 	sort.Slice(tags, func(i, j int) bool {
 		return tags[i].TimeAdded > tags[j].TimeAdded
 	})
+	customMetrics.RegistryCallsSuccess.Inc()
 	return tags, nil
 }
 
@@ -102,16 +108,19 @@ func (c *Client) CVES(org, tag string) ([]domain.CVE, error) {
 	i := url.QueryEscape(url.QueryEscape(org))
 	url := fmt.Sprintf(image, host, "registry.access.redhat.com", i, tag)
 	resp, err := http.Get(url)
+	customMetrics.RegistryCallsTotal.Inc()
 	if err != nil {
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
+		customMetrics.RegistryCallsFailure.Inc()
 		return nil, errors.New("unexpected response from rhcc api " + resp.Status)
 	}
 
 	defer resp.Body.Close()
 	dec := json.NewDecoder(resp.Body)
 	if err := dec.Decode(cri); err != nil {
+		customMetrics.RegistryCallsFailure.Inc()
 		return nil, err
 	}
 	var cves []domain.CVE
@@ -119,5 +128,6 @@ func (c *Client) CVES(org, tag string) ([]domain.CVE, error) {
 	for _, v := range cri.Processed[0].Images[0].VulnerabilitiesRef {
 		cves = append(cves, domain.CVE{AdvisoryID: v.AdvisoryID, Severity: v.Severity, ID: v.CveID})
 	}
+	customMetrics.RegistryCallsSuccess.Inc()
 	return cves, nil
 }

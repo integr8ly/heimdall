@@ -4,12 +4,12 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/operator-framework/operator-sdk/pkg/metrics"
-	"github.com/prometheus/client_golang/prometheus"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"os"
 	"runtime"
+
+	"github.com/operator-framework/operator-sdk/pkg/metrics"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 
 	monitoringv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/integr8ly/heimdall/pkg/apis"
@@ -53,7 +53,7 @@ func main() {
 
 	printVersion()
 
-	namespace, err := k8sutil.GetOperatorNamespace()
+	namespace, err := k8sutil.GetWatchNamespace()
 	if err != nil {
 		log.Error(err, "failed to get operator namespace")
 		os.Exit(1)
@@ -104,15 +104,6 @@ func main() {
 		{Port: operatorMetricsPort, Name: metrics.CRPortName, Protocol: v1.ProtocolTCP, TargetPort: intstr.IntOrString{Type: intstr.Int, IntVal: operatorMetricsPort}},
 	}
 
-	registryCounter := prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace: namespace,
-		Name:      "registry_request_counter",
-		Help:      "counts the overall requests to the redhat registry",
-	})
-
-	if err := prometheus.Register(registryCounter); err != nil {
-		panic("failed to register metrics")
-	}
 	// Create Service object to expose the metrics port(s).
 	service, err := metrics.CreateMetricsService(ctx, cfg, servicePorts)
 	if err != nil {
