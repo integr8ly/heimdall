@@ -8,17 +8,17 @@ import (
 var (
 	RegistryCallsTotal = prometheus.NewCounter(
 		prometheus.CounterOpts{
-			Name: "registry_calls_total",
+			Name: "heimdall_registry_calls_total",
 			Help: "Number of registry calls",
 		})
 	RegistryCallsSuccess = prometheus.NewCounter(
 		prometheus.CounterOpts{
-			Name: "registry_calls_success",
+			Name: "heimdall_registry_calls_success",
 			Help: "Number of successful registry calls",
 		})
 	RegistryCallsFailure = prometheus.NewCounter(
 		prometheus.CounterOpts{
-			Name: "registry_calls_failure",
+			Name: "heimdall_registry_calls_failure",
 			Help: "Number of failed registry calls",
 		})
 )
