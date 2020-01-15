@@ -5,6 +5,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
+	"github.com/integr8ly/heimdall/pkg/customMetrics"
 	"github.com/integr8ly/heimdall/pkg/domain"
 	"github.com/pkg/errors"
 	"os"
@@ -22,9 +23,12 @@ func (c *Client) Get(r string) (*domain.RemoteImageDigest, error) {
 		return nil, fmt.Errorf("parsing reference %q: %v", r, err)
 	}
 	img, err := remote.Image(ref, remote.WithAuthFromKeychain(authn.DefaultKeychain))
+	customMetrics.RegistryCallsTotal.Inc()
 	if err != nil {
+		customMetrics.RegistryCallsFailure.Inc()
 		return nil, fmt.Errorf("reading image %q: %v", ref, err)
 	}
+	customMetrics.RegistryCallsSuccess.Inc()
 	digest, err := img.Digest()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get image digest")
