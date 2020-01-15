@@ -45,6 +45,9 @@ cluster/clean:
 test/unit:
 	@./scripts/ci/unit_test.sh
 
+.PHONY: test/e2e/prow
+test/e2e/prow: test/e2e
+
 .PHONY: test/e2e
 test/e2e: cluster/clean
 	-oc create namespace $(NAMESPACE)
