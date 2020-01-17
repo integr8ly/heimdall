@@ -60,7 +60,6 @@ type ReconcileImageMonitor struct {
 }
 
 func (r *ReconcileImageMonitor) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	// TODO need to add finalizer and remove finalizer on delete
 	ctx := context.TODO()
 	imageMon := &v1alpha1.ImageMonitor{}
 	err := r.client.Get(context.TODO(), client.ObjectKey{Namespace: request.Namespace, Name: request.Name}, imageMon)
