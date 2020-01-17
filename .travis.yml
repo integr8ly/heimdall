@@ -1,0 +1,13 @@
+language: go
+
+go:
+  - 1.13.x
+
+stages:
+  - name: push
+    if: fork = false AND branch = master
+
+jobs:
+  include:
+    - stage: push
+      script: make image/build/push
