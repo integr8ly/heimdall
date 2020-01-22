@@ -63,7 +63,6 @@ func (is *ImageService) FindImagesFromImageChangeParams(defaultNS string, params
 		if err != nil {
 			return nil, err
 		}
-
 		parsedImage := ParseImage(actualImage)
 		parsedImage.FromImageStream = true
 		parsedImage.ImageStreamTag = ist

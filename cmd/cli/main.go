@@ -19,8 +19,6 @@ import (
 	"strings"
 )
 
-//curl 'https://rhcc-api.redhat.com/rest/v1/repository/registry.access.redhat.com/amq7%252Famq-online-1-api-server/images' -H 'accept: application/json' -H 'Origin: https://access.redhat.com' -H 'Sec-Fetch-Mode: cors' --compressed
-
 func main() {
 	namespacePtr := flag.String("namespaces", "", "the namespaces to check")
 	componentPtr := flag.String("component", "*", "the dc or deployment name to check in the namespace")
@@ -60,11 +58,12 @@ func main() {
 		t := table.NewWriter()
 		t.SetOutputMirror(os.Stdout)
 
-		t.AppendHeader(table.Row{"component", "Image", "Image Stream", "Tag", "UpTo Date With Tag", "Persistent Image Tag", "Latest Patch Tag", "Floating Tag", "Using Floating Tag", "Upto Date with Floating Tag", "Critical CVEs", "Important CVEs", "Moderate CVEs"})
+		t.AppendHeader(table.Row{"component", "Image", "Image Hash", "Image Stream", "Tag", "UpTo Date With Tag", "Persistent Image Tag", "Latest Patch Tag", "Floating Tag", "Using Floating Tag", "Upto Date with Floating Tag", "Critical CVEs", "Important CVEs", "Moderate CVEs"})
 		for i := range reports {
 			t.AppendRows([]table.Row{
 				{reports[i].Component,
 					reports[i].ClusterImage.OrgImagePath,
+					reports[i].ClusterImage.GetSHAFromPath(),
 					reports[i].ClusterImage.FromImageStream,
 					reports[i].ClusterImage.Tag,
 					reports[i].UpToDateWithOwnTag,

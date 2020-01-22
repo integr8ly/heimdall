@@ -71,6 +71,7 @@ func (c *Client) AvailableTagsSortedByDate(org string) ([]Tag, error) {
 		// add freshness grade based on whether end date has passed or not
 		for _, r := range i.Repositories {
 			for _, t := range r.Tags {
+
 				var tagType string
 				if len(t.TagHistory) == 1 {
 					tagType = t.TagHistory[0].TagType
