@@ -124,20 +124,27 @@ func (i *ImageService) Check(image *domain.ClusterImage) (domain.ReportResult, e
 	} else {
 		// need to find the actual persistent tag for this floating tag
 		for j, t := range tags {
-			mr := regexp.MustCompile("^v?" + majorMinorVersion + "(\\W)+")
-			if !mr.MatchString(t.Name) {
-				log.Info("skipping tag ", t.Name, " as it does not match on major minor patch version "+majorMinorVersion+".*")
-				continue
+			if majorMinorVersion != "" {
+				// this is an optimisation to reduce calls to the registry if we fail to find a valid major minor version we still need to
+				// go through all the tags till we find the right one
+				mr := regexp.MustCompile("^v?" + majorMinorVersion + "(\\W)+")
+				if !mr.MatchString(t.Name) {
+					fmt.Println("skipping tag ", t.Name, " as it does not match on major minor patch version "+majorMinorVersion+".*")
+					log.Info("skipping tag ", t.Name, " as it does not match on major minor patch version "+majorMinorVersion+".*")
+					continue
+				}
 			}
 			registryTagImage, err := i.imageGetter.Get(image.RegistryPath + ":" + t.Name)
 			if err != nil {
 				return result, errors.Wrap(err, "failed to get image details from registry for image "+image.RegistryPath+":"+t.Name)
 			}
-
 			if registryTagImage.Hash == clusterImageDigests.SHADigest {
 				if t.Name == "latest" && len(tags) > 1 {
 					// we continue as there will be an actual specific image version that matches
 					continue
+				}
+				if majorMinorVersion == "" {
+					majorMinorVersion = i.resolveMajorMinorVersion(tags, t.Name)
 				}
 				result.CurrentVersion = t.Name
 				result.CurrentGrade = t.FreshnessGrade
@@ -223,7 +230,7 @@ func (i *ImageService) getResolvableCVEs(image *domain.ClusterImage, latestPatch
 }
 
 func (i *ImageService) resolveMajorMinorVersion(tags []rhcc.Tag, tag string) string {
-	r := regexp.MustCompile("^v?\\d(\\d?\\.?)\\d?(\\d?\\d?\\d?)")
+	r := regexp.MustCompile("^([vV])?(\\d+)(\\.\\d+)")
 	if tag == "latest" {
 		// as the tags are in date order we can use the tag right after latest as it will be floating and upto date with latest
 		for i, t := range tags {

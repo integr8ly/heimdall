@@ -226,6 +226,68 @@ func TestImageService_Check(t *testing.T) {
 					t.Fatal("expected the resolvable CVEs to be  ", res.ResolvableCVEs)
 				}
 			},
+		}, {
+			Name:        "test check returns CVEs and later version when image tag is not a version",
+			Image:       "registry.redhat.io/amq7/amq-online-1-api-server:3scale2.7",
+			SHAImage:    "registry.redhat.io/amq7/amq-online-1-api-server@sha256:someotherhash",
+			ImageStream: true,
+			ImageGetter: func() registry.ImageGetter {
+				return &registry.ImageGetterMock{
+					GetFunc: func(in1 string) (digest *domain.RemoteImageDigest, e error) {
+						if !strings.Contains(in1, "1.11-27.1578407517") {
+							return &domain.RemoteImageDigest{Hash: "somehash", Algorithm: "sha256"}, nil
+						}
+						return &domain.RemoteImageDigest{Hash: "someotherhash", Algorithm: "sha256"}, nil
+					},
+				}
+			},
+			VersionGetter: func() registry.ImageVersionsGetter {
+				return &registry.ImageVersionsGetterMock{
+					AvailableTagsSortedByDateFunc: func(in1 string) (strings []rhcc.Tag, e error) {
+						// we return them in order as this is how we will receive them
+						return []rhcc.Tag{{Name: "1.11", Added: "20200119T23:03:30.187-0500", TimeAdded: 1579493010, Type: "floating"}, {Name: "3scale2.7.1", Added: "20200119T23:03:20.774-0500", TimeAdded: 1579493000, Type: "floating"}, {Name: "1.11-27.1579183773", Added: "20200119T23:03:30.187-0500", TimeAdded: 1579493010},
+							{Name: "1.11-27.1578407517", Added: "20200119T23:03:25.000-0500", TimeAdded: 1579493005, Type: "persistent"}}, nil
+					},
+				}
+			},
+			CVEGetter: func() registry.ImageCVEGetter {
+				return &registry.ImageCVEGetterMock{
+					CVESFunc: func(org string, tag string) (cves []domain.CVE, e error) {
+						if tag == "1.11-27.1578407517" {
+							return []domain.CVE{{
+								Severity:   "minor",
+								ID:         "1",
+								AdvisoryID: "1",
+							},
+								{
+									Severity:   "important",
+									ID:         "2",
+									AdvisoryID: "2",
+								}}, nil
+						}
+						if tag == "1.11-27.1579183773" {
+							return []domain.CVE{{
+								Severity:   "minor",
+								ID:         "1",
+								AdvisoryID: "1",
+							},
+							}, nil
+						}
+						return nil, nil
+					},
+				}
+			},
+			Validate: func(t *testing.T, res *domain.ReportResult) {
+				if res.CurrentVersion != "1.11-27.1578407517" {
+					t.Fatal("expected version 1.11-27.1578407517 but got ", res.CurrentVersion)
+				}
+				if res.LatestAvailablePatchVersion != "1.11-27.1579183773" {
+					t.Fatal("expected the latest available version to be 1.11-27.1579183773 but got ", res.LatestAvailablePatchVersion)
+				}
+				if len(res.ResolvableCVEs) != 1 {
+					t.Fatal("expected the resolvable CVEs to be  ", res.ResolvableCVEs)
+				}
+			},
 		},
 	}
 
