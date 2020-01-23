@@ -22,7 +22,9 @@ Login to a target cluster to ensure your kube config is pointing to the correct 
 You need to get a service account token and login with it locally using the docker login method. Here is one I have set up (you need to login to see it) https://access.redhat.com/terms-based-registry/#/token/-heimdall
 
 ``` 
-./cli -namespaces=fuse
+./cli -namespaces=fuse,enmasse
+
+./cli -namespaces=fuse -component=syndesis-meta
 ```
 
 ### Sample Output
