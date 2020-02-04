@@ -22,6 +22,7 @@ func (c *Client) Get(r string) (*domain.RemoteImageDigest, error) {
 	if err != nil {
 		return nil, fmt.Errorf("parsing reference %q: %v", r, err)
 	}
+
 	img, err := remote.Image(ref, remote.WithAuthFromKeychain(authn.DefaultKeychain))
 	customMetrics.RegistryCallsTotal.Inc()
 	if err != nil {
