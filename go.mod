@@ -16,6 +16,7 @@ require (
 	github.com/pkg/errors v0.8.1
 	github.com/prometheus/client_golang v1.1.0
 	go.mongodb.org/mongo-driver v1.1.2 // indirect
+	golang.org/x/net v0.0.0-20190812203447-cdfb69ac37fc
 	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0
 	k8s.io/client-go v12.0.0+incompatible
