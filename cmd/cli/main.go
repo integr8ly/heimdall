@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/integr8ly/heimdall/pkg/cluster"
@@ -24,6 +25,7 @@ import (
 
 func main() {
 	namespacePtr := flag.String("namespaces", "", "the namespaces to check")
+	namespacePatternPtr := flag.String("namespace-pattern", "", "a go compilant regular expression to include only matching namespaces")
 	componentPtr := flag.String("component", "*", "the dc or deployment name to check in the namespace")
 	labelPodsPtr := flag.String("label-pods", "false", "add labels to the pods with the info discovered")
 	flag.Parse()
@@ -51,6 +53,10 @@ func main() {
 	namespaces, err := getNamespaces(client, namespacePtr)
 	if err != nil {
 		log.Fatalf("error getting namespaces: %v", err)
+	}
+	namespaces, err = filterNamespaces(namespaces, namespacePatternPtr)
+	if err != nil {
+		log.Fatalf("error filtering namespaces with pattern %s: %v", *namespacePatternPtr, err)
 	}
 	for _, n := range namespaces {
 
@@ -109,8 +115,6 @@ func getNamespaces(client *kubernetes.Clientset, namespaceFlag *string) ([]strin
 		return strings.Split(*namespaceFlag, ","), nil
 	}
 
-	log.Println("generating report for all namespaces")
-
 	namespaceList, err := client.CoreV1().Namespaces().List(metav1.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("error querying namespaces: %w", err)
@@ -119,6 +123,35 @@ func getNamespaces(client *kubernetes.Clientset, namespaceFlag *string) ([]strin
 	result := make([]string, len(namespaceList.Items))
 	for i, ns := range namespaceList.Items {
 		result[i] = ns.Name
+	}
+
+	return result, nil
+}
+
+// filterNamespaces returns a slice of strings from the `namespaces` parameter
+// that match the `namespacePatternFlag` regex. If `namespacePatternFlag` has
+// no value, all namespaces are included.
+func filterNamespaces(namespaces []string, namespacePatternFlag *string) ([]string, error) {
+	if namespacePatternFlag == nil || *namespacePatternFlag == "" {
+		return namespaces, nil
+	}
+
+	if len(namespaces) == 0 {
+		return namespaces, nil
+	}
+
+	pattern := strings.Trim(*namespacePatternFlag, "\"")
+
+	result := make([]string, 0, len(namespaces))
+	re, err := regexp.Compile(pattern)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, namespace := range namespaces {
+		if re.MatchString(namespace) {
+			result = append(result, namespace)
+		}
 	}
 
 	return result, nil
