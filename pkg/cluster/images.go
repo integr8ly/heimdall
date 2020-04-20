@@ -2,6 +2,9 @@ package cluster
 
 import (
 	"fmt"
+	"regexp"
+	"strings"
+
 	"github.com/integr8ly/heimdall/pkg/domain"
 	v12 "github.com/openshift/api/apps/v1"
 	v13 "github.com/openshift/api/image/v1"
@@ -9,9 +12,7 @@ import (
 	"github.com/pkg/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"regexp"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
-	"strings"
 )
 
 var log = logf.Log.WithName("image_service")
@@ -182,7 +183,8 @@ func ParseImage(i string) *domain.ClusterImage {
 	registryURLParts := strings.Split(si, "/")
 	imageParts := strings.Split(registryURLParts[len(registryURLParts)-1], ":")
 	registryURL := strings.Join(registryURLParts[:len(registryURLParts)-1], "/") + "/" + imageParts[0]
-	imagePath := strings.Split(strings.Split(si, ":")[0], "/")
+	imagePath := strings.Split(si, "/")
+	imagePath[2] = strings.Split(imagePath[2], ":")[0] // remove the tag from the last part
 	if len(imageParts) == 1 {
 		imageParts = append(imageParts, "latest")
 	}
