@@ -4,6 +4,7 @@ import (
 	"github.com/integr8ly/heimdall/pkg/controller/deploymentconfigs"
 	"github.com/integr8ly/heimdall/pkg/controller/deployments"
 	"github.com/integr8ly/heimdall/pkg/controller/imagemonitor"
+	"github.com/integr8ly/heimdall/pkg/controller/statefulset"
 )
 
 func init() {
@@ -11,4 +12,5 @@ func init() {
 	AddToManagerFuncs = append(AddToManagerFuncs, deploymentconfigs.Add)
 	AddToManagerFuncs = append(AddToManagerFuncs, deployments.Add)
 	AddToManagerFuncs = append(AddToManagerFuncs, imagemonitor.Add)
+	AddToManagerFuncs = append(AddToManagerFuncs, statefulset.Add)
 }

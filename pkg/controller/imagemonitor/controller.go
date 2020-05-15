@@ -2,6 +2,7 @@ package imagemonitor
 
 import (
 	"context"
+
 	"github.com/integr8ly/heimdall/pkg/apis/imagemonitor/v1alpha1"
 	"github.com/integr8ly/heimdall/pkg/cluster"
 	"github.com/integr8ly/heimdall/pkg/domain"
@@ -104,7 +105,7 @@ func (r *ReconcileImageMonitor) Reconcile(request reconcile.Request) (reconcile.
 	}
 	log.Info("have image monitor for namespace " + imageMon.Namespace + " with name " + imageMon.Name)
 	// find deployment configs and deployments that match in the namespace and label them
-	if err := r.objectLabeler.LabelAllDeploymentsAndDeploymentConfigs(ctx, map[string]string{domain.HeimdallMonitored: "true"}, imageMon.Spec.ExcludePattern, imageMon.Namespace); err != nil {
+	if err := r.objectLabeler.LabelObjects(ctx, map[string]string{domain.HeimdallMonitored: "true"}, imageMon.Spec.ExcludePattern, imageMon.Namespace); err != nil {
 		return reconcile.Result{}, err
 	}
 	return reconcile.Result{}, nil

@@ -26,6 +26,7 @@ rules:
   resources:
   - replicasets
   - deployments
+  - statefulsets
   - deployments/finalizers
   verbs:
   - '*'

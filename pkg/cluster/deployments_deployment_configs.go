@@ -3,11 +3,12 @@ package cluster
 import (
 	"context"
 	"fmt"
+	"regexp"
+
 	"github.com/integr8ly/heimdall/pkg/domain"
 	v1 "github.com/openshift/api/apps/v1"
 	"github.com/pkg/errors"
 	v12 "k8s.io/api/apps/v1"
-	"regexp"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -21,9 +22,10 @@ func NewObjectLabeler(c client.Client) *ObjectsLabeler {
 	}
 }
 
-func (ol *ObjectsLabeler) LabelAllDeploymentsAndDeploymentConfigs(ctx context.Context, labels map[string]string, excludePattern string, ns string) error {
+func (ol *ObjectsLabeler) LabelObjects(ctx context.Context, labels map[string]string, excludePattern string, ns string) error {
 	dcList := &v1.DeploymentConfigList{}
 	depList := &v12.DeploymentList{}
+	statSetList := &v12.StatefulSetList{}
 	var listOpts = &client.ListOptions{Namespace: ns}
 	var matchRegex *regexp.Regexp
 
@@ -32,6 +34,9 @@ func (ol *ObjectsLabeler) LabelAllDeploymentsAndDeploymentConfigs(ctx context.Co
 	}
 	if err := ol.client.List(ctx, depList, listOpts); err != nil {
 		return errors.Wrap(err, "failed to list deployments  in namespace "+ns)
+	}
+	if err := ol.client.List(ctx, statSetList, listOpts); err != nil {
+		return errors.Wrap(err, "failed to list stateful sets in namespace "+ns)
 	}
 
 	var err error
@@ -76,12 +81,31 @@ func (ol *ObjectsLabeler) LabelAllDeploymentsAndDeploymentConfigs(ctx context.Co
 			return err
 		}
 	}
+	for _, statSet := range statSetList.Items {
+		if statSet.Labels == nil {
+			statSet.Labels = map[string]string{}
+		}
+
+		for k, v := range labels {
+			if excludePattern != "" && matchRegex.MatchString(statSet.Name) {
+				fmt.Printf("skipping %s as matched by excludePattern %s/n",
+					statSet.Name, excludePattern)
+				delete(statSet.Labels, k)
+				continue
+			}
+			statSet.Labels[k] = v
+		}
+		if err := ol.client.Update(context.TODO(), &statSet); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
 func (ol *ObjectsLabeler) RemoveLabelsAnnotations(ctx context.Context, labels map[string]string, ns string) error {
 	dcList := &v1.DeploymentConfigList{}
 	depList := &v12.DeploymentList{}
+	statSetList := &v12.StatefulSetList{}
 	var listOpts = &client.ListOptions{Namespace: ns}
 
 	if err := ol.client.List(ctx, dcList, listOpts); err != nil {
@@ -89,6 +113,9 @@ func (ol *ObjectsLabeler) RemoveLabelsAnnotations(ctx context.Context, labels ma
 	}
 	if err := ol.client.List(ctx, depList, listOpts); err != nil {
 		return errors.Wrap(err, "failed to list deployments  in namespace "+ns)
+	}
+	if err := ol.client.List(ctx, statSetList, listOpts); err != nil {
+		return errors.Wrap(err, "failed to list stateful sets in namespace "+ns)
 	}
 
 	for _, dc := range dcList.Items {
@@ -118,6 +145,20 @@ func (ol *ObjectsLabeler) RemoveLabelsAnnotations(ctx context.Context, labels ma
 			delete(dep.Annotations, domain.HeimdallImagesChecked)
 		}
 		if err := ol.client.Update(context.TODO(), &dep); err != nil {
+			return err
+		}
+	}
+	for _, statSet := range statSetList.Items {
+		if statSet.Labels != nil {
+			for k, _ := range labels {
+				delete(statSet.Labels, k)
+			}
+		}
+		if statSet.Annotations != nil {
+			delete(statSet.Annotations, domain.HeimdallLastChecked)
+			delete(statSet.Annotations, domain.HeimdallImagesChecked)
+		}
+		if err := ol.client.Update(context.TODO(), &statSet); err != nil {
 			return err
 		}
 	}

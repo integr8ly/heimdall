@@ -11,6 +11,7 @@ import (
 	"github.com/integr8ly/heimdall/pkg/cluster"
 	"github.com/integr8ly/heimdall/pkg/controller/deploymentconfigs"
 	"github.com/integr8ly/heimdall/pkg/controller/deployments"
+	"github.com/integr8ly/heimdall/pkg/controller/statefulset"
 	"github.com/integr8ly/heimdall/pkg/domain"
 	"github.com/integr8ly/heimdall/pkg/registry"
 	"github.com/integr8ly/heimdall/pkg/rhcc"
@@ -49,6 +50,7 @@ func main() {
 	registryIS := registry.NewImagesService(&registry.Client{}, &rhcc.Client{}, &rhcc.Client{})
 	dcReport := deploymentconfigs.NewReport(clusterIS, registryIS, dcClient)
 	deploymentReport := deployments.NewReport(clusterIS, registryIS, client.AppsV1())
+	statefulSetReport := statefulset.NewReport(clusterIS, registryIS, client.AppsV1())
 	var reports []domain.ReportResult
 	namespaces, err := getNamespaces(client, namespacePtr)
 	if err != nil {
@@ -59,14 +61,15 @@ func main() {
 		log.Fatalf("error filtering namespaces with pattern %s: %v", *namespacePatternPtr, err)
 	}
 	for _, n := range namespaces {
-
-		dcReports, err := dcReport.Generate(n, *componentPtr)
+		nsReports, err := accumulateReports(n, *componentPtr,
+			dcReport.Generate,
+			deploymentReport.Generate,
+			statefulSetReport.Generate,
+		)
 		if err != nil {
 			log.Println("failed to generate image report " + err.Error())
 		}
-		reports = append(reports, dcReports...)
-		deploymentReports, err := deploymentReport.Generate(n, *componentPtr)
-		reports = append(reports, deploymentReports...)
+		reports = append(reports, nsReports...)
 		t := table.NewWriter()
 		t.SetOutputMirror(os.Stdout)
 
@@ -152,6 +155,25 @@ func filterNamespaces(namespaces []string, namespacePatternFlag *string) ([]stri
 		if re.MatchString(namespace) {
 			result = append(result, namespace)
 		}
+	}
+
+	return result, nil
+}
+
+// accumulateReports takes a variadic list of functions that generate reports
+// and invokes them passing the same given ns and name, and accumulates all
+// the results in a single slice. If any of the generate function fails, the
+// function returns the error.
+func accumulateReports(ns, name string, generateFns ...func(string, string) ([]domain.ReportResult, error)) ([]domain.ReportResult, error) {
+	result := []domain.ReportResult{}
+
+	for _, generateFn := range generateFns {
+		reports, err := generateFn(ns, name)
+		if err != nil {
+			return result, err
+		}
+
+		result = append(result, reports...)
 	}
 
 	return result, nil
